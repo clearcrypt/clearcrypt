@@ -1,0 +1,35 @@
+{
+  "name": "clearcrypt",
+  "version": "1.0.0",
+  "description": "Client-side, zero-knowledge file encryption core. This repository provides an auditable cryptographic core for encrypting and decrypting files locally using a password-based model. No plaintext, secrets, or keys are ever stored or transmitted. Includes a versioned, self-describing file format.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/clearcrypt/clearcrypt.git"
+  },
+  "keywords": [
+    "encrypt",
+    "file",
+    "crypt"
+  ],
+  "author": "Khandova",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/clearcrypt/clearcrypt/issues"
+  },
+  "homepage": "https://github.com/clearcrypt/clearcrypt#readme",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "vitest": "^4.0.16"
+  }
+}
