@@ -3,3 +3,4 @@ export const VERSION_V1 = 0x01;
 
 export const CIPHER_AES_256_GCM = 0x01;
 export const KDF_ARGON2ID = 0x01;
+export const AES_GCM_TAG_LENGTH_BITS = 128;
