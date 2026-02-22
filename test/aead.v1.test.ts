@@ -4,12 +4,7 @@ import {
     aeadEncryptAes256Gcm,
     importAesGcmKey,
 } from "../src/v1/aead";
-
-function bytes(len: number, fn: (i: number) => number): Uint8Array {
-    const out = new Uint8Array(len);
-    for (let i = 0; i < len; i++) out[i] = fn(i) & 0xff;
-    return out;
-}
+import { bytes } from "./helpers";
 
 describe("AEAD AES-256-GCM", () => {
     it("roundtrip with associated Authenticated Data", async () => {

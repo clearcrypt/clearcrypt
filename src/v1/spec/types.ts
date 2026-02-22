@@ -15,7 +15,14 @@ export interface V1KdfParams {
 export interface V1Decoded {
   header: V1Header;
   kdf: V1KdfParams;
-  wrappedDek: Uint8Array; // 32 bytes
+  wrappedDek: V1Wrap;
   ciphertext: Uint8Array;
   authTag: Uint8Array; // 16 bytes
 }
+
+export type V1Wrap = {
+  wrapCipherId: number;         // u8
+  wrapNonce: Uint8Array;        // 12
+  wrappedDekCiphertext: Uint8Array; // 32
+  wrapTag: Uint8Array;          // 16
+};

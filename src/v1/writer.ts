@@ -1,8 +1,14 @@
 export class Writer {
   private chunks: Uint8Array[] = [];
+  private _length = 0;
+
+  get length(): number {
+    return this._length;
+  }
 
   writeBytes(bytes: Uint8Array) {
     this.chunks.push(bytes);
+    this._length += bytes.length;
   }
 
   writeU8(value: number) {
@@ -25,4 +31,5 @@ export class Writer {
     }
     return out;
   }
+
 }
