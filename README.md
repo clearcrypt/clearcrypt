@@ -1,6 +1,9 @@
 # clearcrypt
 Client-side, zero-knowledge file encryption core. This repository provides an auditable cryptographic core for encrypting and decrypting files locally using a password-based model. No plaintext, secrets, or keys are ever stored or transmitted. Includes a versioned, self-describing file format.
 
+## Requirements
+- Node.js 24 or newer.
+
 ## Public API (stable)
 The stable API surface is:
 - `encryptBytesV1(plaintext, password, options?)`
@@ -46,6 +49,11 @@ writeFileSync("input.txt.cc", encrypted);
 const decrypted = await decryptBytesV1(encrypted, "secret");
 writeFileSync("decrypted.txt", decrypted);
 ```
+
+## Web integration constraints
+- Current API is buffer-based (`Uint8Array` in / `Uint8Array` out). It is not a streaming API.
+- For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
+- For very large files, enforce UI size limits until a streaming API is introduced.
 
 ## API reference
 ```ts
@@ -97,4 +105,13 @@ try {
 The V1 file format is self-describing. Header/AAD fields are stored in cleartext but authenticated. The payload remains encrypted.
 
 ## Compatibility
-The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js.
+The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.
+
+## Release process
+Run these steps on Node.js 24+ before publishing:
+```bash
+npm run release:check
+npm run release:publish
+```
+
+`release:check` runs tests, build, and `npm pack --dry-run` to verify the package contents.

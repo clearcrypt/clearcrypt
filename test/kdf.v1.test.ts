@@ -50,4 +50,36 @@ describe("V1 KDF (Argon2id)", () => {
       })
     ).rejects.toThrow(/salt/i);
   });
+
+  it("rejects invalid KDF cost ranges", async () => {
+    await expect(
+      deriveKekArgon2id({
+        password: "password",
+        salt: bytes(16, (i) => i),
+        timeCost: 0,
+        memoryCost: 8 * 1024,
+        parallelism: 1,
+      })
+    ).rejects.toThrow(/timeCost/i);
+
+    await expect(
+      deriveKekArgon2id({
+        password: "password",
+        salt: bytes(16, (i) => i),
+        timeCost: 1,
+        memoryCost: 7 * 1024,
+        parallelism: 1,
+      })
+    ).rejects.toThrow(/memoryCost/i);
+
+    await expect(
+      deriveKekArgon2id({
+        password: "password",
+        salt: bytes(16, (i) => i),
+        timeCost: 1,
+        memoryCost: 8 * 1024,
+        parallelism: 0,
+      })
+    ).rejects.toThrow(/parallelism/i);
+  });
 });

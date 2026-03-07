@@ -479,4 +479,17 @@ describe("V1 encryption with password", () => {
       decryptV1WithPassword({ data: tampered, password: "password-xyz" })
     ).rejects.toThrow();
   });
+
+  it("fails if KDF id is unsupported", async () => {
+    const header = makeHeader({ nonce: bytes(12, (i) => 0x32 + i) });
+    const kdf = makeKdf({ kdfId: 0xff, salt: bytes(16, (i) => 0x42 + i) });
+    const wrappedDek = makeWrap();
+    const ciphertext = bytes(8, (i) => i ^ 0x55);
+    const authTag = bytes(16, (i) => 0xaa - i);
+    const { bytes: encoded } = encodeV1(header, kdf, wrappedDek, ciphertext, authTag);
+
+    await expect(
+      decryptV1WithPassword({ data: encoded, password: "password-xyz" })
+    ).rejects.toThrow(/unsupported kdf/i);
+  });
 });

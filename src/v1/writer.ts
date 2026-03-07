@@ -13,12 +13,14 @@ export class Writer {
 
   writeU8(value: number) {
     this.chunks.push(Uint8Array.of(value & 0xff));
+    this._length += 1;
   }
 
   writeU32BE(value: number) {
     const buf = new Uint8Array(4);
     new DataView(buf.buffer).setUint32(0, value, false);
     this.chunks.push(buf);
+    this._length += 4;
   }
 
   concat(): Uint8Array {

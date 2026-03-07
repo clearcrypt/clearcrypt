@@ -5,7 +5,7 @@ import {
 } from "./aead";
 import { deriveKekArgon2id } from "./kdf";
 import { Reader } from "./reader";
-import { CIPHER_AES_256_GCM, MAGIC, VERSION_V1 } from "./spec/constants";
+import { CIPHER_AES_256_GCM, KDF_ARGON2ID, MAGIC, VERSION_V1 } from "./spec/constants";
 import type { V1Decoded, V1Header, V1KdfParams, V1Wrap } from "./spec/types";
 import { unwrapDekWithKek, wrapDekWithKek } from "./wrap";
 import { Writer } from "./writer";
@@ -240,6 +240,9 @@ export async function encryptV1WithPassword(params: {
   plaintext: Uint8Array;
 }): Promise<{ bytes: Uint8Array; aadLength: number }> {
   const { header, kdf, password, wrapNonce, plaintext } = params;
+  if (kdf.kdfId !== KDF_ARGON2ID) {
+    throw new Error("Unsupported KDF for V1 encryption");
+  }
 
   const kekRaw32 = await deriveKekArgon2id({
     password,
@@ -270,6 +273,9 @@ export async function decryptV1WithPassword(params: {
   const { data, password } = params;
 
   const decoded = decodeV1(data);
+  if (decoded.kdf.kdfId !== KDF_ARGON2ID) {
+    throw new Error("Unsupported KDF for V1 decryption");
+  }
   const kekRaw32 = await deriveKekArgon2id({
     password,
     salt: decoded.kdf.salt,

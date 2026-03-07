@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Client-side, zero-knowledge file encryption core. This repository provides an auditable cryptographic core for encrypting and decrypting files locally using a password-based model. No plaintext, secrets, or keys are ever stored or transmitted. Includes a versioned, self-describing file format.",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -17,7 +20,9 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "release:check": "npm run test:run && npm run build && npm pack --dry-run",
+    "release:publish": "npm publish --access public"
   },
   "repository": {
     "type": "git",

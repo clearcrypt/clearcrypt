@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ClearcryptError, decryptBytesV1, encryptBytesV1 } from "../src/index";
+import { KDF_ARGON2ID } from "../src/v1/spec/constants";
 import { decodeV1 } from "../src/v1/format";
 import { bytes } from "./helpers";
 
@@ -78,5 +79,24 @@ describe("V1 public API", () => {
 
     expect(err).toBeInstanceOf(ClearcryptError);
     expect((err as ClearcryptError).code).toBe("AUTH_FAILED");
+  });
+
+  it("returns INVALID_PARAMS for unsupported KDF id on encryption", async () => {
+    const plaintext = bytes(12, (i) => i);
+
+    let err: unknown;
+    try {
+      await encryptBytesV1(plaintext, "secret", {
+        nonce: bytes(12, (i) => 0x10 + i),
+        salt: bytes(16, (i) => 0x20 + i),
+        wrapNonce: bytes(12, (i) => 0x30 + i),
+        kdf: { kdfId: (KDF_ARGON2ID + 1) & 0xff },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(ClearcryptError);
+    expect((err as ClearcryptError).code).toBe("INVALID_PARAMS");
   });
 });

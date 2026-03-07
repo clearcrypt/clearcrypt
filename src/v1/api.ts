@@ -56,7 +56,11 @@ function mapEncryptError(err: unknown): ClearcryptError {
     return err;
   }
   const message = err instanceof Error ? err.message : String(err);
-  if (/nonce must be 12 bytes|salt must be 16 bytes|wrapped dek/i.test(message)) {
+  if (
+    /nonce must be 12 bytes|salt must be 16 bytes|wrapped dek|unsupported kdf|timecost|memorycost|parallelism/i.test(
+      message
+    )
+  ) {
     return new ClearcryptError("INVALID_PARAMS", message, err);
   }
   return new ClearcryptError("CRYPTO_FAILED", "Encryption failed", err);
@@ -68,7 +72,7 @@ function mapDecryptError(err: unknown): ClearcryptError {
   }
   const message = err instanceof Error ? err.message : String(err);
   if (
-    /invalid magic|unsupported version|unexpected end of file|invalid payload|unsupported cipher/i.test(
+    /invalid magic|unsupported version|unexpected end of file|invalid payload|unsupported cipher|unsupported kdf/i.test(
       message
     )
   ) {
