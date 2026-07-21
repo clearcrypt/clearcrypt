@@ -20,7 +20,13 @@ describe("V1 public API", () => {
     const password = "password-123";
 
     const encrypted = await encryptBytesV1(plaintext, password, { kdf: FAST_KDF });
-    const decrypted = await decryptBytesV1(encrypted, password);
+    const decrypted = await decryptBytesV1(encrypted, password, {
+      resourcePolicy: {
+        maxMemoryCostKiB: 8 * 1024,
+        maxTimeCost: 1,
+        maxParallelism: 1,
+      },
+    });
 
     expect([...decrypted]).toEqual([...plaintext]);
   });

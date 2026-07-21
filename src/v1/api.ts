@@ -3,12 +3,20 @@ import type { V1Header } from "./spec/types";
 import { decryptV1WithPassword, encryptV1WithPassword } from "./format";
 import { resolveV1KdfParams } from "./encrypt-options";
 import type { V1EncryptOptions } from "./encrypt-options";
+import {
+  InvalidArchiveKdfParamsError,
+  InvalidResourcePolicyError,
+  ResourcePolicyError,
+} from "./resource-policy";
+import type { V1DecryptOptions } from "./resource-policy";
 
 export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
+export type { DecryptResourcePolicy, V1DecryptOptions } from "./resource-policy";
 
 export type ClearcryptErrorCode =
   | "INVALID_PARAMS"
   | "INVALID_FORMAT"
+  | "RESOURCE_LIMIT"
   | "AUTH_FAILED"
   | "CRYPTO_FAILED"
   | "INTERNAL";
@@ -50,9 +58,18 @@ function mapDecryptError(err: unknown): ClearcryptError {
   if (err instanceof ClearcryptError) {
     return err;
   }
+  if (err instanceof ResourcePolicyError) {
+    return new ClearcryptError("RESOURCE_LIMIT", err.message, err);
+  }
+  if (err instanceof InvalidResourcePolicyError) {
+    return new ClearcryptError("INVALID_PARAMS", err.message, err);
+  }
+  if (err instanceof InvalidArchiveKdfParamsError) {
+    return new ClearcryptError("INVALID_FORMAT", "Invalid format", err);
+  }
   const message = err instanceof Error ? err.message : String(err);
   if (
-    /invalid magic|unsupported version|unexpected end of file|invalid payload|unsupported cipher|unsupported kdf/i.test(
+    /invalid magic|unsupported version|unexpected end of file|invalid payload|unsupported cipher|unsupported wrap cipher|unsupported kdf/i.test(
       message
     )
   ) {
@@ -92,10 +109,17 @@ export async function encryptBytesV1(
 
 export async function decryptBytesV1(
   data: Uint8Array,
-  password: Uint8Array | string
+  password: Uint8Array | string,
+  options: V1DecryptOptions = {}
 ): Promise<Uint8Array> {
   try {
-    const { plaintext } = await decryptV1WithPassword({ data, password });
+    const { plaintext } = await decryptV1WithPassword({
+      data,
+      password,
+      ...(options.resourcePolicy
+        ? { resourcePolicy: options.resourcePolicy }
+        : {}),
+    });
     return plaintext;
   } catch (err) {
     throw mapDecryptError(err);

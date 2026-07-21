@@ -1,11 +1,11 @@
 const ARGON2ID_FALLBACK = 2;
 const KEK_LENGTH_BYTES = 32;
-const MIN_TIME_COST = 1;
-const MAX_TIME_COST = 10;
-const MIN_MEMORY_COST_KIB = 8 * 1024;
-const MAX_MEMORY_COST_KIB = 256 * 1024;
-const MIN_PARALLELISM = 1;
-const MAX_PARALLELISM = 16;
+export const MIN_TIME_COST = 1;
+export const MAX_TIME_COST = 10;
+export const MIN_MEMORY_COST_KIB = 8 * 1024;
+export const MAX_MEMORY_COST_KIB = 256 * 1024;
+export const MIN_PARALLELISM = 1;
+export const MAX_PARALLELISM = 16;
 let argon2Module: any = null;
 let nodeLoaderReady = false;
 
@@ -25,12 +25,7 @@ export async function deriveKekArgon2id(params: {
 }): Promise<Uint8Array> {
   const { password, salt, timeCost, memoryCost, parallelism } = params;
 
-  if (salt.length !== 16) {
-    throw new Error("Salt must be 16 bytes");
-  }
-  assertRange("timeCost", timeCost, MIN_TIME_COST, MAX_TIME_COST);
-  assertRange("memoryCost", memoryCost, MIN_MEMORY_COST_KIB, MAX_MEMORY_COST_KIB);
-  assertRange("parallelism", parallelism, MIN_PARALLELISM, MAX_PARALLELISM);
+  assertValidArgon2idParams({ salt, timeCost, memoryCost, parallelism });
 
   if (!nodeLoaderReady && typeof process !== "undefined" && process.versions?.node) {
     const [{ readFileSync }, { createRequire }] = await Promise.all([
@@ -77,6 +72,21 @@ export async function deriveKekArgon2id(params: {
 
   const hash = (result as { hash: Uint8Array | ArrayBuffer }).hash;
   return hash instanceof Uint8Array ? hash : new Uint8Array(hash);
+}
+
+export function assertValidArgon2idParams(params: {
+  salt: Uint8Array;
+  timeCost: number;
+  memoryCost: number;
+  parallelism: number;
+}): void {
+  const { salt, timeCost, memoryCost, parallelism } = params;
+  if (salt.length !== 16) {
+    throw new Error("Salt must be 16 bytes");
+  }
+  assertRange("timeCost", timeCost, MIN_TIME_COST, MAX_TIME_COST);
+  assertRange("memoryCost", memoryCost, MIN_MEMORY_COST_KIB, MAX_MEMORY_COST_KIB);
+  assertRange("parallelism", parallelism, MIN_PARALLELISM, MAX_PARALLELISM);
 }
 
 function assertRange(name: string, value: number, min: number, max: number): void {

@@ -7,7 +7,7 @@ Client-side, zero-knowledge file encryption core. This repository provides an au
 ## Public API (stable)
 The stable API surface is:
 - `encryptBytesV1(plaintext, password, options?)`
-- `decryptBytesV1(data, password)`
+- `decryptBytesV1(data, password, options?)`
 
 All other modules are internal and may change.
 
@@ -65,7 +65,8 @@ encryptBytesV1(
 
 decryptBytesV1(
   data: Uint8Array,
-  password: Uint8Array | string
+  password: Uint8Array | string,
+  options?: V1DecryptOptions
 ): Promise<Uint8Array>
 ```
 
@@ -83,11 +84,27 @@ confirmed by the planned cross-platform benchmarks.
 The salt, content nonce, wrapping nonce, and DEK are always generated inside the
 package with `crypto.getRandomValues()`. They cannot be supplied through the public API.
 
+`decryptBytesV1` accepts an optional local resource policy:
+
+```ts
+{
+  resourcePolicy: {
+    maxMemoryCostKiB?: number;
+    maxTimeCost?: number;
+    maxParallelism?: number;
+  }
+}
+```
+
+The provisional defaults are 128 MiB, 4 passes, and parallelism 4. Archive KDF
+parameters are validated against this policy before Argon2id is started.
+
 ## Errors
 API functions throw `ClearcryptError` with a short message and a `code`.
 Codes:
 - `INVALID_PARAMS`: a KDF profile or KDF parameter is invalid.
 - `INVALID_FORMAT`: data is not a valid or supported V1 format.
+- `RESOURCE_LIMIT`: archive KDF parameters exceed the local resource policy.
 - `AUTH_FAILED`: wrong password or data was tampered with.
 - `CRYPTO_FAILED`: encryption failed for an unexpected reason.
 

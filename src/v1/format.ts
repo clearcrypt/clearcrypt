@@ -6,9 +6,11 @@ import {
 import { deriveKekArgon2id } from "./kdf";
 import { Reader } from "./reader";
 import { CIPHER_AES_256_GCM, KDF_ARGON2ID, MAGIC, VERSION_V1 } from "./spec/constants";
-import type { V1Decoded, V1Header, V1KdfParams, V1Wrap } from "./spec/types";
+import type { V1Decoded, V1Header, V1KdfParams, V1Metadata, V1Wrap } from "./spec/types";
 import { unwrapDekWithKek, wrapDekWithKek } from "./wrap";
 import { Writer } from "./writer";
+import { enforceDecryptResourcePolicy } from "./resource-policy";
+import type { DecryptResourcePolicy } from "./resource-policy";
 
 /* =========
  * Encode
@@ -111,7 +113,7 @@ export async function encryptV1WithDek(params: {
  * Decode
  * ========= */
 
-export function decodeV1(data: Uint8Array): V1Decoded {
+function readV1Metadata(data: Uint8Array): { metadata: V1Metadata; reader: Reader } {
   const r = new Reader(data);
 
   const magic = r.readBytes(8);
@@ -140,17 +142,36 @@ export function decodeV1(data: Uint8Array): V1Decoded {
 
   const wrappedDek : V1Wrap = { wrapCipherId, wrapNonce, wrappedDekCiphertext, wrapTag };
 
-  const remaining = r.remaining();
-  if (remaining.length < 16) {
+  if (r.remainingLength() < 16) {
     throw new Error("Invalid payload");
   }
+
+  return {
+    metadata: {
+      header: { version, cipherId, nonce },
+      kdf: { kdfId, salt, timeCost, memoryCost, parallelism },
+      wrappedDek,
+    },
+    reader: r,
+  };
+}
+
+export function decodeV1Metadata(data: Uint8Array): V1Metadata {
+  return readV1Metadata(data).metadata;
+}
+
+export function decodeV1(data: Uint8Array): V1Decoded {
+  const { metadata, reader } = readV1Metadata(data);
+  const { header, kdf, wrappedDek } = metadata;
+
+  const remaining = reader.remaining();
 
   const ciphertext = remaining.slice(0, remaining.length - 16);
   const authTag = remaining.slice(remaining.length - 16);
 
   return {
-    header: { version, cipherId, nonce },
-    kdf: { kdfId, salt, timeCost, memoryCost, parallelism },
+    header,
+    kdf,
     wrappedDek,
     ciphertext,
     authTag
@@ -264,27 +285,36 @@ export async function encryptV1WithPassword(params: {
 export async function decryptV1WithPassword(params: {
   data: Uint8Array;
   password: Uint8Array | string;
+  resourcePolicy?: Partial<DecryptResourcePolicy>;
 }): Promise<{
   plaintext: Uint8Array;
   header: V1Header;
   kdf: V1KdfParams;
   wrappedDek: V1Wrap;
 }> {
-  const { data, password } = params;
+  const { data, password, resourcePolicy } = params;
 
-  const decoded = decodeV1(data);
-  if (decoded.kdf.kdfId !== KDF_ARGON2ID) {
+  const metadata = decodeV1Metadata(data);
+  if (metadata.header.cipherId !== CIPHER_AES_256_GCM) {
+    throw new Error("Unsupported cipher for V1 decryption");
+  }
+  if (metadata.kdf.kdfId !== KDF_ARGON2ID) {
     throw new Error("Unsupported KDF for V1 decryption");
   }
+  if (metadata.wrappedDek.wrapCipherId !== CIPHER_AES_256_GCM) {
+    throw new Error("Unsupported wrap cipher for V1 decryption");
+  }
+  enforceDecryptResourcePolicy(metadata.kdf, resourcePolicy);
+
   const kekRaw32 = await deriveKekArgon2id({
     password,
-    salt: decoded.kdf.salt,
-    timeCost: decoded.kdf.timeCost,
-    memoryCost: decoded.kdf.memoryCost,
-    parallelism: decoded.kdf.parallelism,
+    salt: metadata.kdf.salt,
+    timeCost: metadata.kdf.timeCost,
+    memoryCost: metadata.kdf.memoryCost,
+    parallelism: metadata.kdf.parallelism,
   });
 
-  const dek = await unwrapDekWithKek({ wrap: decoded.wrappedDek, kekRaw32 });
+  const dek = await unwrapDekWithKek({ wrap: metadata.wrappedDek, kekRaw32 });
   return decryptV1WithDek({ data, dek });
 }
 

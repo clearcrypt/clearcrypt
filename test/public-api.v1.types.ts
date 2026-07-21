@@ -1,4 +1,4 @@
-import type { V1EncryptOptions } from "../src/index";
+import type { V1DecryptOptions, V1EncryptOptions } from "../src/index";
 
 const validOptions: V1EncryptOptions = {
   kdfProfile: "interactive",
@@ -26,3 +26,17 @@ void [
   optionsWithKdfId,
   optionsWithNestedSalt,
 ];
+
+const validDecryptOptions: V1DecryptOptions = {
+  resourcePolicy: {
+    maxMemoryCostKiB: 128 * 1024,
+    maxTimeCost: 4,
+    maxParallelism: 4,
+  },
+};
+const invalidDecryptOptions: V1DecryptOptions = {
+  // @ts-expect-error Unknown policy fields are intentionally rejected.
+  resourcePolicy: { maxCpuTime: 10 },
+};
+
+void [validDecryptOptions, invalidDecryptOptions];

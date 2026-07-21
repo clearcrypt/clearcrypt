@@ -24,4 +24,8 @@ export class Reader {
   remaining(): Uint8Array {
     return this.data.slice(this.offset);
   }
+
+  remainingLength(): number {
+    return this.data.length - this.offset;
+  }
 }
