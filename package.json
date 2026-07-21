@@ -15,12 +15,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "docs/memory-v1.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest",
     "test:run": "vitest run",
+    "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
     "release:check": "npm run test:run && npm run build && npm pack --dry-run",
     "release:publish": "npm publish --access public"
   },

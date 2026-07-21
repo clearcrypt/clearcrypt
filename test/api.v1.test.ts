@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ClearcryptError,
   decryptBytesV1,
@@ -6,6 +6,7 @@ import {
 } from "../src/index";
 import type { V1EncryptOptions } from "../src/index";
 import { decodeV1 } from "../src/v1/format";
+import { Reader } from "../src/v1/reader";
 import { bytes } from "./helpers";
 
 const FAST_KDF = {
@@ -29,6 +30,21 @@ describe("V1 public API", () => {
     });
 
     expect([...decrypted]).toEqual([...plaintext]);
+  });
+
+  it("parses an archive only once during password decryption", async () => {
+    const encrypted = await encryptBytesV1(bytes(32, (i) => i), "password", {
+      kdf: FAST_KDF,
+    });
+    const readBytesSpy = vi.spyOn(Reader.prototype, "readBytes");
+
+    try {
+      await decryptBytesV1(encrypted, "password");
+      const magicReads = readBytesSpy.mock.calls.filter(([length]) => length === 8);
+      expect(magicReads).toHaveLength(1);
+    } finally {
+      readBytesSpy.mockRestore();
+    }
   });
 
   it("writes the selected public KDF settings", async () => {

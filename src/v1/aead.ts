@@ -1,7 +1,31 @@
 import { AES_GCM_TAG_LENGTH_BITS } from "./spec/constants";
 
-function toArrayBuffer(u8: Uint8Array): ArrayBuffer {
-  return u8.slice().buffer;
+function toWebCryptoBytes(u8: Uint8Array): Uint8Array<ArrayBuffer> {
+  if (u8.buffer instanceof ArrayBuffer) {
+    return u8 as Uint8Array<ArrayBuffer>;
+  }
+  return new Uint8Array(u8);
+}
+
+function combineCiphertextAndTag(
+    ciphertext: Uint8Array,
+    tag: Uint8Array
+): Uint8Array {
+    if (
+        ciphertext.buffer === tag.buffer &&
+        ciphertext.byteOffset + ciphertext.byteLength === tag.byteOffset
+    ) {
+        return new Uint8Array(
+            ciphertext.buffer,
+            ciphertext.byteOffset,
+            ciphertext.byteLength + tag.byteLength
+        );
+    }
+
+    const combined = new Uint8Array(ciphertext.length + tag.length);
+    combined.set(ciphertext, 0);
+    combined.set(tag, ciphertext.length);
+    return combined;
 }
 
 export async function importAesGcmKey(raw32: Uint8Array): Promise<CryptoKey> {
@@ -10,7 +34,7 @@ export async function importAesGcmKey(raw32: Uint8Array): Promise<CryptoKey> {
     }
     return crypto.subtle.importKey(
         "raw",
-        toArrayBuffer(raw32),
+        toWebCryptoBytes(raw32),
         { name: "AES-GCM" },
         false,
         ["encrypt", "decrypt"]
@@ -31,23 +55,23 @@ export async function aeadEncryptAes256Gcm(params: {
 
     const algorithmorithm: AesGcmParams = {
         name: "AES-GCM",
-        iv: toArrayBuffer(nonce),
+        iv: toWebCryptoBytes(nonce),
         tagLength: AES_GCM_TAG_LENGTH_BITS,
     };
     if (associatedAuthenticatedData && associatedAuthenticatedData.length > 0) {
-        algorithmorithm.additionalData = toArrayBuffer(associatedAuthenticatedData);
+        algorithmorithm.additionalData = toWebCryptoBytes(associatedAuthenticatedData);
     }
 
     const out = new Uint8Array(
-        await crypto.subtle.encrypt(algorithmorithm, key, toArrayBuffer(plaintext))
+        await crypto.subtle.encrypt(algorithmorithm, key, toWebCryptoBytes(plaintext))
     );
 
     if (out.length < 16) {
         throw new Error("Invalid Authenticated Encryption with Associated Data (AEAD) output");
     }
 
-    const tag = out.slice(out.length - 16);
-    const ciphertext = out.slice(0, out.length - 16);
+    const tag = out.subarray(out.length - 16);
+    const ciphertext = out.subarray(0, out.length - 16);
 
     return { ciphertext, tag };
 }
@@ -68,19 +92,21 @@ export async function aeadDecryptAes256Gcm(params: {
         throw new Error("Auth tag must be 16 bytes");
     }
 
-    const ciphertextTagCombined = new Uint8Array(ciphertext.length + tag.length);
-    ciphertextTagCombined.set(ciphertext, 0);
-    ciphertextTagCombined.set(tag, ciphertext.length);
+    const ciphertextTagCombined = combineCiphertextAndTag(ciphertext, tag);
 
     const algorithm: AesGcmParams = {
         name: "AES-GCM",
-        iv: toArrayBuffer(nonce),
+        iv: toWebCryptoBytes(nonce),
         tagLength: AES_GCM_TAG_LENGTH_BITS,
     };
     if (associatedAuthenticatedData && associatedAuthenticatedData.length > 0) {
-        algorithm.additionalData = toArrayBuffer(associatedAuthenticatedData);
+        algorithm.additionalData = toWebCryptoBytes(associatedAuthenticatedData);
     }
 
-    const plainTextBuf = await crypto.subtle.decrypt(algorithm, key, ciphertextTagCombined);
+    const plainTextBuf = await crypto.subtle.decrypt(
+        algorithm,
+        key,
+        toWebCryptoBytes(ciphertextTagCombined)
+    );
     return new Uint8Array(plainTextBuf);
 }

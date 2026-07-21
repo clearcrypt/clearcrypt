@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeV1,
+  decodeEnvelopeV1,
   decryptV1WithDek,
   decryptV1WithKek,
   decryptV1WithPassword,
@@ -102,6 +103,30 @@ describe("V1 format", () => {
     expect([...decoded.wrappedDek.wrapTag]).toEqual([...wrappedDek.wrapTag]);
     expect([...decoded.ciphertext]).toEqual([...ciphertext]);
     expect([...decoded.authTag]).toEqual([...authTag]);
+  });
+
+  it("decodes the envelope as zero-copy views over the archive", () => {
+    const ciphertext = bytes(50, (i) => 0x55 ^ i);
+    const tag = bytes(16, (i) => 0xee - i);
+    const { bytes: archive, aadLength } = encodeV1(
+      makeHeader(),
+      makeKdf(),
+      makeWrap(),
+      ciphertext,
+      tag
+    );
+
+    const envelope = decodeEnvelopeV1(archive);
+
+    expect(envelope.aad).toEqual(archive.subarray(0, aadLength));
+    expect(envelope.aad.buffer).toBe(archive.buffer);
+    expect(envelope.header.nonce.buffer).toBe(archive.buffer);
+    expect(envelope.kdf.salt.buffer).toBe(archive.buffer);
+    expect(envelope.wrap.wrapNonce.buffer).toBe(archive.buffer);
+    expect(envelope.wrap.wrappedDekCiphertext.buffer).toBe(archive.buffer);
+    expect(envelope.wrap.wrapTag.buffer).toBe(archive.buffer);
+    expect(envelope.ciphertext.buffer).toBe(archive.buffer);
+    expect(envelope.tag.buffer).toBe(archive.buffer);
   });
 
   it("rejects invalid magic/version", () => {

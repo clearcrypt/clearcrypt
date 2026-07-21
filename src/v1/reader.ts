@@ -3,11 +3,15 @@ export class Reader {
 
   constructor(private readonly data: Uint8Array) {}
 
+  get position(): number {
+    return this.offset;
+  }
+
   readBytes(length: number): Uint8Array {
     if (this.offset + length > this.data.length) {
       throw new Error("Unexpected end of file");
     }
-    const slice = this.data.slice(this.offset, this.offset + length);
+    const slice = this.data.subarray(this.offset, this.offset + length);
     this.offset += length;
     return slice;
   }
@@ -21,11 +25,11 @@ export class Reader {
     return new DataView(buf.buffer, buf.byteOffset, 4).getUint32(0, false);
   }
 
-  remaining(): Uint8Array {
-    return this.data.slice(this.offset);
-  }
-
   remainingLength(): number {
     return this.data.length - this.offset;
+  }
+
+  remainingView(): Uint8Array {
+    return this.data.subarray(this.offset);
   }
 }

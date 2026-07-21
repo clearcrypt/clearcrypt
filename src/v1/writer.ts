@@ -24,8 +24,7 @@ export class Writer {
   }
 
   concat(): Uint8Array {
-    const total = this.chunks.reduce((s, b) => s + b.length, 0);
-    const out = new Uint8Array(total);
+    const out = new Uint8Array(this._length);
     let offset = 0;
     for (const b of this.chunks) {
       out.set(b, offset);

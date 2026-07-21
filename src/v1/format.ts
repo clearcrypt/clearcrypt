@@ -6,7 +6,7 @@ import {
 import { deriveKekArgon2id } from "./kdf";
 import { Reader } from "./reader";
 import { CIPHER_AES_256_GCM, KDF_ARGON2ID, MAGIC, VERSION_V1 } from "./spec/constants";
-import type { V1Decoded, V1Header, V1KdfParams, V1Metadata, V1Wrap } from "./spec/types";
+import type { DecodedEnvelopeV1, V1Decoded, V1Header, V1KdfParams, V1Wrap } from "./spec/types";
 import { unwrapDekWithKek, wrapDekWithKek } from "./wrap";
 import { Writer } from "./writer";
 import { enforceDecryptResourcePolicy } from "./resource-policy";
@@ -113,7 +113,7 @@ export async function encryptV1WithDek(params: {
  * Decode
  * ========= */
 
-function readV1Metadata(data: Uint8Array): { metadata: V1Metadata; reader: Reader } {
+export function decodeEnvelopeV1(data: Uint8Array): DecodedEnvelopeV1 {
   const r = new Reader(data);
 
   const magic = r.readBytes(8);
@@ -142,40 +142,60 @@ function readV1Metadata(data: Uint8Array): { metadata: V1Metadata; reader: Reade
 
   const wrappedDek : V1Wrap = { wrapCipherId, wrapNonce, wrappedDekCiphertext, wrapTag };
 
+  const aad = data.subarray(0, r.position);
   if (r.remainingLength() < 16) {
     throw new Error("Invalid payload");
   }
+  const payload = r.remainingView();
+  const ciphertext = payload.subarray(0, payload.length - 16);
+  const tag = payload.subarray(payload.length - 16);
 
   return {
-    metadata: {
-      header: { version, cipherId, nonce },
-      kdf: { kdfId, salt, timeCost, memoryCost, parallelism },
-      wrappedDek,
-    },
-    reader: r,
+    header: { version, cipherId, nonce },
+    kdf: { kdfId, salt, timeCost, memoryCost, parallelism },
+    wrap: wrappedDek,
+    aad,
+    ciphertext,
+    tag,
   };
-}
-
-export function decodeV1Metadata(data: Uint8Array): V1Metadata {
-  return readV1Metadata(data).metadata;
 }
 
 export function decodeV1(data: Uint8Array): V1Decoded {
-  const { metadata, reader } = readV1Metadata(data);
-  const { header, kdf, wrappedDek } = metadata;
-
-  const remaining = reader.remaining();
-
-  const ciphertext = remaining.slice(0, remaining.length - 16);
-  const authTag = remaining.slice(remaining.length - 16);
+  const envelope = decodeEnvelopeV1(data);
 
   return {
-    header,
-    kdf,
-    wrappedDek,
-    ciphertext,
-    authTag
+    header: envelope.header,
+    kdf: envelope.kdf,
+    wrappedDek: envelope.wrap,
+    ciphertext: envelope.ciphertext,
+    authTag: envelope.tag,
   };
+}
+
+async function decryptEnvelopeV1WithDek(
+  envelope: DecodedEnvelopeV1,
+  dek: Uint8Array
+): Promise<Uint8Array> {
+  const key = await importAesGcmKey(dek);
+  return aeadDecryptAes256Gcm({
+    key,
+    nonce: envelope.header.nonce,
+    ciphertext: envelope.ciphertext,
+    tag: envelope.tag,
+    associatedAuthenticatedData: envelope.aad,
+  });
+}
+
+function assertSupportedEnvelopeV1(envelope: DecodedEnvelopeV1): void {
+  if (envelope.header.cipherId !== CIPHER_AES_256_GCM) {
+    throw new Error("Unsupported cipher for V1 decryption");
+  }
+  if (envelope.kdf.kdfId !== KDF_ARGON2ID) {
+    throw new Error("Unsupported KDF for V1 decryption");
+  }
+  if (envelope.wrap.wrapCipherId !== CIPHER_AES_256_GCM) {
+    throw new Error("Unsupported wrap cipher for V1 decryption");
+  }
 }
 
 export async function decryptV1WithDek(params: {
@@ -189,28 +209,11 @@ export async function decryptV1WithDek(params: {
 }> {
   const { data, dek } = params;
 
-  const decoded = decodeV1(data);
-  const { header, kdf, wrappedDek, ciphertext, authTag } = decoded;
+  const envelope = decodeEnvelopeV1(data);
+  const { header, kdf, wrap: wrappedDek } = envelope;
+  assertSupportedEnvelopeV1(envelope);
 
-  if (header.version !== VERSION_V1) {
-    throw new Error("Unsupported version for V1 decryption");
-  }
-  if (header.cipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported cipher for V1 decryption");
-  }
-
-  const w = new Writer();
-  encodeAadV1(header, kdf, wrappedDek, w);
-  const aad = w.concat();
-
-  const key = await importAesGcmKey(dek);
-  const plaintext = await aeadDecryptAes256Gcm({
-    key,
-    nonce: header.nonce,
-    ciphertext,
-    tag: authTag,
-    associatedAuthenticatedData: aad,
-  });
+  const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
 
   return { plaintext, header, kdf, wrappedDek };
 }
@@ -247,10 +250,17 @@ export async function decryptV1WithKek(params: {
 }> {
   const { data, kekRaw32 } = params;
 
-  const decoded = decodeV1(data);
-  const dek = await unwrapDekWithKek({ wrap: decoded.wrappedDek, kekRaw32 });
+  const envelope = decodeEnvelopeV1(data);
+  assertSupportedEnvelopeV1(envelope);
+  const dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
 
-  return decryptV1WithDek({ data, dek });
+  const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
+  return {
+    plaintext,
+    header: envelope.header,
+    kdf: envelope.kdf,
+    wrappedDek: envelope.wrap,
+  };
 }
 
 export async function encryptV1WithPassword(params: {
@@ -294,28 +304,26 @@ export async function decryptV1WithPassword(params: {
 }> {
   const { data, password, resourcePolicy } = params;
 
-  const metadata = decodeV1Metadata(data);
-  if (metadata.header.cipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported cipher for V1 decryption");
-  }
-  if (metadata.kdf.kdfId !== KDF_ARGON2ID) {
-    throw new Error("Unsupported KDF for V1 decryption");
-  }
-  if (metadata.wrappedDek.wrapCipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported wrap cipher for V1 decryption");
-  }
-  enforceDecryptResourcePolicy(metadata.kdf, resourcePolicy);
+  const envelope = decodeEnvelopeV1(data);
+  assertSupportedEnvelopeV1(envelope);
+  enforceDecryptResourcePolicy(envelope.kdf, resourcePolicy);
 
   const kekRaw32 = await deriveKekArgon2id({
     password,
-    salt: metadata.kdf.salt,
-    timeCost: metadata.kdf.timeCost,
-    memoryCost: metadata.kdf.memoryCost,
-    parallelism: metadata.kdf.parallelism,
+    salt: envelope.kdf.salt,
+    timeCost: envelope.kdf.timeCost,
+    memoryCost: envelope.kdf.memoryCost,
+    parallelism: envelope.kdf.parallelism,
   });
 
-  const dek = await unwrapDekWithKek({ wrap: metadata.wrappedDek, kekRaw32 });
-  return decryptV1WithDek({ data, dek });
+  const dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
+  const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
+  return {
+    plaintext,
+    header: envelope.header,
+    kdf: envelope.kdf,
+    wrappedDek: envelope.wrap,
+  };
 }
 
 

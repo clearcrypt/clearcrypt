@@ -54,6 +54,7 @@ writeFileSync("decrypted.txt", decrypted);
 - Current API is buffer-based (`Uint8Array` in / `Uint8Array` out). It is not a streaming API.
 - For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
 - For very large files, enforce UI size limits until a streaming API is introduced.
+- See [`docs/memory-v1.md`](docs/memory-v1.md) for the peak-memory model and benchmark.
 
 ## API reference
 ```ts

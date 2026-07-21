@@ -20,10 +20,13 @@ export interface V1Decoded {
   authTag: Uint8Array; // 16 bytes
 }
 
-export type V1Metadata = {
+export type DecodedEnvelopeV1 = {
   header: V1Header;
   kdf: V1KdfParams;
-  wrappedDek: V1Wrap;
+  wrap: V1Wrap;
+  aad: Uint8Array;
+  ciphertext: Uint8Array;
+  tag: Uint8Array;
 };
 
 export type V1Wrap = {
