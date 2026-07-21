@@ -1,6 +1,10 @@
-import { CIPHER_AES_256_GCM, KDF_ARGON2ID, VERSION_V1 } from "./spec/constants";
-import type { V1Header, V1KdfParams } from "./spec/types";
+import { CIPHER_AES_256_GCM, VERSION_V1 } from "./spec/constants";
+import type { V1Header } from "./spec/types";
 import { decryptV1WithPassword, encryptV1WithPassword } from "./format";
+import { resolveV1KdfParams } from "./encrypt-options";
+import type { V1EncryptOptions } from "./encrypt-options";
+
+export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
 
 export type ClearcryptErrorCode =
   | "INVALID_PARAMS"
@@ -21,34 +25,10 @@ export class ClearcryptError extends Error {
   }
 }
 
-export type V1EncryptOptions = {
-  nonce?: Uint8Array;
-  salt?: Uint8Array;
-  wrapNonce?: Uint8Array;
-  kdf?: Partial<V1KdfParams>;
-};
-
-const DEFAULT_KDF: V1KdfParams = {
-  kdfId: KDF_ARGON2ID,
-  salt: new Uint8Array(16),
-  timeCost: 2,
-  memoryCost: 64 * 1024,
-  parallelism: 2,
-};
-
 function randomBytes(len: number): Uint8Array {
   const out = new Uint8Array(len);
   crypto.getRandomValues(out);
   return out;
-}
-
-function assertLength(name: string, value: Uint8Array, expected: number): void {
-  if (value.length !== expected) {
-    throw new ClearcryptError(
-      "INVALID_PARAMS",
-      `${name} must be ${expected} bytes`
-    );
-  }
 }
 
 function mapEncryptError(err: unknown): ClearcryptError {
@@ -87,31 +67,14 @@ export async function encryptBytesV1(
   options: V1EncryptOptions = {}
 ): Promise<Uint8Array> {
   try {
-    if (options.nonce) {
-      assertLength("nonce", options.nonce, 12);
-    }
-    if (options.salt) {
-      assertLength("salt", options.salt, 16);
-    }
-    if (options.wrapNonce) {
-      assertLength("wrapNonce", options.wrapNonce, 12);
-    }
-
     const header: V1Header = {
       version: VERSION_V1,
       cipherId: CIPHER_AES_256_GCM,
-      nonce: options.nonce ?? randomBytes(12),
+      nonce: randomBytes(12),
     };
 
-    const kdf: V1KdfParams = {
-      kdfId: options.kdf?.kdfId ?? DEFAULT_KDF.kdfId,
-      salt: options.salt ?? randomBytes(16),
-      timeCost: options.kdf?.timeCost ?? DEFAULT_KDF.timeCost,
-      memoryCost: options.kdf?.memoryCost ?? DEFAULT_KDF.memoryCost,
-      parallelism: options.kdf?.parallelism ?? DEFAULT_KDF.parallelism,
-    };
-
-    const wrapNonce = options.wrapNonce ?? randomBytes(12);
+    const kdf = resolveV1KdfParams(randomBytes(16), options);
+    const wrapNonce = randomBytes(12);
 
     const { bytes } = await encryptV1WithPassword({
       header,

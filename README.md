@@ -70,18 +70,23 @@ decryptBytesV1(
 ```
 
 ## Options
-`encryptBytesV1` accepts optional overrides:
-- `nonce`: 12 bytes (AES-GCM nonce)
-- `salt`: 16 bytes (KDF salt)
-- `wrapNonce`: 12 bytes (wrap nonce for DEK)
+`encryptBytesV1` accepts optional KDF settings:
+
+- `kdfProfile`: `"interactive"` (default) or `"hardened"`
 - `kdf`: `{ timeCost, memoryCost, parallelism }`
 
-If not provided, secure random values are generated.
+The provisional `interactive` profile uses 64 MiB, 2 passes, and parallelism 2.
+The provisional `hardened` profile uses 128 MiB, 3 passes, and parallelism 2.
+Explicit `kdf` values override the selected profile. Profile values will be
+confirmed by the planned cross-platform benchmarks.
+
+The salt, content nonce, wrapping nonce, and DEK are always generated inside the
+package with `crypto.getRandomValues()`. They cannot be supplied through the public API.
 
 ## Errors
 API functions throw `ClearcryptError` with a short message and a `code`.
 Codes:
-- `INVALID_PARAMS`: input sizes are wrong (nonce/salt/wrapNonce).
+- `INVALID_PARAMS`: a KDF profile or KDF parameter is invalid.
 - `INVALID_FORMAT`: data is not a valid or supported V1 format.
 - `AUTH_FAILED`: wrong password or data was tampered with.
 - `CRYPTO_FAILED`: encryption failed for an unexpected reason.
