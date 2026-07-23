@@ -1,6 +1,11 @@
 import { aeadDecryptAes256Gcm, aeadEncryptAes256Gcm, importAesGcmKey } from "./aead";
 import { CIPHER_AES_256_GCM } from "./spec/constants";
 import type { V1Wrap } from "./spec/types";
+import {
+  CryptoOperationError,
+  InvalidParamsError,
+  UnsupportedAlgorithmError,
+} from "./errors";
 
 export async function wrapDekWithKek(params: {
   dek: Uint8Array;        // 32 bytes
@@ -9,8 +14,8 @@ export async function wrapDekWithKek(params: {
 }): Promise<V1Wrap> {
   const { dek, kekRaw32, wrapNonce } = params;
 
-  if (dek.length !== 32) throw new Error("DEK must be 32 bytes");
-  if (wrapNonce.length !== 12) throw new Error("Wrap nonce must be 12 bytes");
+  if (dek.length !== 32) throw new InvalidParamsError("DEK must be 32 bytes");
+  if (wrapNonce.length !== 12) throw new InvalidParamsError("Wrap nonce must be 12 bytes");
 
   const key = await importAesGcmKey(kekRaw32);
   const { ciphertext, tag } = await aeadEncryptAes256Gcm({
@@ -21,7 +26,7 @@ export async function wrapDekWithKek(params: {
   });
 
   if (ciphertext.length !== 32) {
-    throw new Error("Wrapped DEK ciphertext must be 32 bytes");
+    throw new CryptoOperationError("Wrapped DEK ciphertext must be 32 bytes");
   }
 
   return {
@@ -39,7 +44,7 @@ export async function unwrapDekWithKek(params: {
   const { wrap, kekRaw32 } = params;
 
   if (wrap.wrapCipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported wrap cipher");
+    throw new UnsupportedAlgorithmError("Unsupported wrap cipher");
   }
 
   const key = await importAesGcmKey(kekRaw32);
@@ -52,7 +57,7 @@ export async function unwrapDekWithKek(params: {
   });
 
   if (dek.length !== 32) {
-    throw new Error("Unwrapped DEK must be 32 bytes");
+    throw new CryptoOperationError("Unwrapped DEK must be 32 bytes");
   }
 
   return dek;

@@ -101,7 +101,18 @@ describe("V1 public API", () => {
       kdf: FAST_KDF,
     });
 
-    await expect(decryptBytesV1(encrypted, "wrong")).rejects.toThrow();
+    let err: unknown;
+    try {
+      await decryptBytesV1(encrypted, "wrong");
+    } catch (caught) {
+      err = caught;
+    }
+
+    expect(err).toBeInstanceOf(ClearcryptError);
+    expect((err as ClearcryptError).code).toBe("AUTH_FAILED");
+    expect((err as ClearcryptError).message).toBe(
+      "Authentication failed or wrong password"
+    );
   });
 
   it("returns AUTH_FAILED when data is tampered", async () => {
@@ -120,6 +131,9 @@ describe("V1 public API", () => {
 
     expect(err).toBeInstanceOf(ClearcryptError);
     expect((err as ClearcryptError).code).toBe("AUTH_FAILED");
+    expect((err as ClearcryptError).message).toBe(
+      "Authentication failed or wrong password"
+    );
   });
 
   it("returns INVALID_PARAMS for an unknown KDF profile at runtime", async () => {

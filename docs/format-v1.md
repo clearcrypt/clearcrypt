@@ -215,8 +215,11 @@ conditions occurs:
 Wrong passwords and cryptographic alteration should share one public
 authentication-failure result so they are not distinguishable. Structural,
 unsupported-format, and resource-policy failures may be reported separately.
-Current ClearCrypt V1 reports unknown versions and algorithms as an invalid or
-unsupported format; a reader must not attempt cryptography for them.
+ClearCrypt V1 reports truncation and incoherent structure as `INVALID_FORMAT`,
+unknown versions or algorithms as `UNSUPPORTED_FORMAT`, resource-policy
+rejections as `RESOURCE_LIMIT`, and wrong passwords or authenticated-data
+alteration as `AUTH_FAILED`. A reader must not attempt cryptography for an
+unknown version or algorithm.
 
 ## Complete annotated example
 

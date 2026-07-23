@@ -11,6 +11,13 @@ import { unwrapDekWithKek, wrapDekWithKek } from "./wrap";
 import { Writer } from "./writer";
 import { enforceDecryptResourcePolicy } from "./resource-policy";
 import type { DecryptResourcePolicy } from "./resource-policy";
+import { secureRandomBytes } from "./crypto-runtime";
+import {
+  FormatError,
+  InvalidParamsError,
+  UnsupportedAlgorithmError,
+  UnsupportedFormatError,
+} from "./errors";
 
 /* =========
  * Encode
@@ -23,19 +30,19 @@ export function encodeAadV1(
   w: Writer
 ): number {
   if (header.nonce.length !== 12) {
-    throw new Error("Nonce must be 12 bytes");
+    throw new InvalidParamsError("Nonce must be 12 bytes");
   }
   if (kdf.salt.length !== 16) {
-    throw new Error("Salt must be 16 bytes");
+    throw new InvalidParamsError("Salt must be 16 bytes");
   }
   if (wrappedDek.wrapNonce.length !== 12) {
-    throw new Error("Wrapped DEK nonce must be 12 bytes");
+    throw new InvalidParamsError("Wrapped DEK nonce must be 12 bytes");
   }
   if (wrappedDek.wrappedDekCiphertext.length !== 32) {
-    throw new Error("Wrapped DEK must be 32 bytes");
+    throw new InvalidParamsError("Wrapped DEK must be 32 bytes");
   }
   if (wrappedDek.wrapTag.length !== 16) {
-    throw new Error("Wrapped DEK tag must be 16 bytes");
+    throw new InvalidParamsError("Wrapped DEK tag must be 16 bytes");
   }
 
   // --- AAD bytes ---
@@ -68,7 +75,7 @@ export function encodeV1(
   authTag: Uint8Array
 ): { bytes: Uint8Array; aadLength: number } {
   if (authTag.length !== 16) {
-    throw new Error("Auth tag must be 16 bytes");
+    throw new InvalidParamsError("Auth tag must be 16 bytes");
   }
   const w = new Writer();
   const aadLength = encodeAadV1(header, kdf, wrappedDek, w);
@@ -118,12 +125,12 @@ export function decodeEnvelopeV1(data: Uint8Array): DecodedEnvelopeV1 {
 
   const magic = r.readBytes(8);
   if (!equalBytes(magic, MAGIC)) {
-    throw new Error("Invalid magic header");
+    throw new FormatError("Invalid magic header");
   }
 
   const version = r.readU8();
   if (version !== VERSION_V1) {
-    throw new Error(`Unsupported version: ${version}`);
+    throw new UnsupportedFormatError(`Unsupported version: ${version}`);
   }
 
   const cipherId = r.readU8();
@@ -144,7 +151,7 @@ export function decodeEnvelopeV1(data: Uint8Array): DecodedEnvelopeV1 {
 
   const aad = data.subarray(0, r.position);
   if (r.remainingLength() < 16) {
-    throw new Error("Invalid payload");
+    throw new FormatError("Invalid payload");
   }
   const payload = r.remainingView();
   const ciphertext = payload.subarray(0, payload.length - 16);
@@ -188,13 +195,13 @@ async function decryptEnvelopeV1WithDek(
 
 function assertSupportedEnvelopeV1(envelope: DecodedEnvelopeV1): void {
   if (envelope.header.cipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported cipher for V1 decryption");
+    throw new UnsupportedAlgorithmError("Unsupported cipher for V1 decryption");
   }
   if (envelope.kdf.kdfId !== KDF_ARGON2ID) {
-    throw new Error("Unsupported KDF for V1 decryption");
+    throw new UnsupportedAlgorithmError("Unsupported KDF for V1 decryption");
   }
   if (envelope.wrap.wrapCipherId !== CIPHER_AES_256_GCM) {
-    throw new Error("Unsupported wrap cipher for V1 decryption");
+    throw new UnsupportedAlgorithmError("Unsupported wrap cipher for V1 decryption");
   }
 }
 
@@ -227,7 +234,7 @@ export async function encryptV1WithKek(params: {
 }): Promise<{ bytes: Uint8Array; aadLength: number }> {
   const { header, kdf, kekRaw32, wrapNonce, plaintext } = params;
 
-  const dek = crypto.getRandomValues(new Uint8Array(32));
+  const dek = secureRandomBytes(32);
   const wrappedDek = await wrapDekWithKek({ dek, kekRaw32, wrapNonce });
 
   return encryptV1WithDek({
@@ -272,7 +279,7 @@ export async function encryptV1WithPassword(params: {
 }): Promise<{ bytes: Uint8Array; aadLength: number }> {
   const { header, kdf, password, wrapNonce, plaintext } = params;
   if (kdf.kdfId !== KDF_ARGON2ID) {
-    throw new Error("Unsupported KDF for V1 encryption");
+    throw new InvalidParamsError("Unsupported KDF for V1 encryption");
   }
 
   const kekRaw32 = await deriveKekArgon2id({

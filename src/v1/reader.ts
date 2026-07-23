@@ -1,3 +1,5 @@
+import { FormatError } from "./errors";
+
 export class Reader {
   private offset = 0;
 
@@ -9,7 +11,7 @@ export class Reader {
 
   readBytes(length: number): Uint8Array {
     if (this.offset + length > this.data.length) {
-      throw new Error("Unexpected end of file");
+      throw new FormatError("Unexpected end of file");
     }
     const slice = this.data.subarray(this.offset, this.offset + length);
     this.offset += length;

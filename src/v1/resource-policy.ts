@@ -1,5 +1,10 @@
 import type { V1KdfParams } from "./spec/types";
 import { assertValidArgon2idParams } from "./kdf";
+import {
+  FormatError,
+  InvalidParamsError,
+  ResourcePolicyError,
+} from "./errors";
 
 export type DecryptResourcePolicy = {
   maxMemoryCostKiB: number;
@@ -17,27 +22,10 @@ export const DEFAULT_DECRYPT_RESOURCE_POLICY: DecryptResourcePolicy = {
   maxParallelism: 4,
 };
 
-export class ResourcePolicyError extends Error {
-  constructor() {
-    super("Archive exceeds the local decryption resource policy");
-    this.name = "ResourcePolicyError";
-  }
-}
-
-export class InvalidResourcePolicyError extends Error {
+export class InvalidResourcePolicyError extends InvalidParamsError {
   constructor(name: keyof DecryptResourcePolicy) {
     super(`${name} must be a positive integer`);
     this.name = "InvalidResourcePolicyError";
-  }
-}
-
-export class InvalidArchiveKdfParamsError extends Error {
-  readonly cause: unknown;
-
-  constructor(cause: unknown) {
-    super("Invalid Argon2id parameters in archive");
-    this.name = "InvalidArchiveKdfParamsError";
-    this.cause = cause;
   }
 }
 
@@ -48,7 +36,7 @@ export function enforceDecryptResourcePolicy(
   try {
     assertValidArgon2idParams(kdf);
   } catch (cause) {
-    throw new InvalidArchiveKdfParamsError(cause);
+    throw new FormatError("Invalid Argon2id parameters in archive", cause);
   }
 
   const policy: DecryptResourcePolicy = {

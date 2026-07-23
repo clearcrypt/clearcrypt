@@ -1,6 +1,8 @@
+import { InvalidParamsError } from "./errors";
+
 export const MAX_PUBLIC_PASSWORD_BYTES = 1024;
 
-export class PasswordPolicyError extends Error {
+export class PasswordPolicyError extends InvalidParamsError {
   constructor(message: string) {
     super(message);
     this.name = "PasswordPolicyError";

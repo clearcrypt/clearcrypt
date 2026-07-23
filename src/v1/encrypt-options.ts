@@ -1,5 +1,6 @@
 import { KDF_ARGON2ID } from "./spec/constants";
 import type { V1KdfParams } from "./spec/types";
+import { InvalidParamsError } from "./errors";
 
 export type KdfProfile = "interactive" | "hardened";
 
@@ -35,7 +36,9 @@ export function resolveV1KdfParams(
   const profileName = options.kdfProfile ?? "interactive";
   const profile = (KDF_PROFILES as Record<string, (typeof KDF_PROFILES)[KdfProfile]>)[profileName];
   if (!profile) {
-    throw new Error(`Unsupported KDF profile: ${String(profileName)}`);
+    throw new InvalidParamsError(
+      `Unsupported KDF profile: ${String(profileName)}`
+    );
   }
 
   return {

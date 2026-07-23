@@ -4,12 +4,17 @@ import { decryptV1WithPassword, encryptV1WithPassword } from "./format";
 import { resolveV1KdfParams } from "./encrypt-options";
 import type { V1EncryptOptions } from "./encrypt-options";
 import {
-  InvalidArchiveKdfParamsError,
-  InvalidResourcePolicyError,
+  AuthenticationError,
+  CryptoOperationError,
+  EnvironmentError,
+  FormatError,
+  InvalidParamsError,
   ResourcePolicyError,
-} from "./resource-policy";
+  UnsupportedFormatError,
+} from "./errors";
 import type { V1DecryptOptions } from "./resource-policy";
-import { PasswordPolicyError, validatePublicPassword } from "./password";
+import { validatePublicPassword } from "./password";
+import { secureRandomBytes } from "./crypto-runtime";
 
 export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
 export type { DecryptResourcePolicy, V1DecryptOptions } from "./resource-policy";
@@ -17,9 +22,11 @@ export type { DecryptResourcePolicy, V1DecryptOptions } from "./resource-policy"
 export type ClearcryptErrorCode =
   | "INVALID_PARAMS"
   | "INVALID_FORMAT"
+  | "UNSUPPORTED_FORMAT"
   | "RESOURCE_LIMIT"
   | "AUTH_FAILED"
   | "CRYPTO_FAILED"
+  | "ENVIRONMENT_ERROR"
   | "INTERNAL";
 
 export class ClearcryptError extends Error {
@@ -34,55 +41,48 @@ export class ClearcryptError extends Error {
   }
 }
 
-function randomBytes(len: number): Uint8Array {
-  const out = new Uint8Array(len);
-  crypto.getRandomValues(out);
-  return out;
-}
-
-function mapEncryptError(err: unknown): ClearcryptError {
+export function mapInternalError(err: unknown): ClearcryptError {
   if (err instanceof ClearcryptError) {
     return err;
   }
-  if (err instanceof PasswordPolicyError) {
+  if (err instanceof InvalidParamsError) {
     return new ClearcryptError("INVALID_PARAMS", err.message, err);
   }
-  const message = err instanceof Error ? err.message : String(err);
-  if (
-    /nonce must be 12 bytes|salt must be 16 bytes|wrapped dek|unsupported kdf|timecost|memorycost|parallelism/i.test(
-      message
-    )
-  ) {
-    return new ClearcryptError("INVALID_PARAMS", message, err);
+  if (err instanceof UnsupportedFormatError) {
+    return new ClearcryptError(
+      "UNSUPPORTED_FORMAT",
+      "Unsupported format or algorithm",
+      err
+    );
   }
-  return new ClearcryptError("CRYPTO_FAILED", "Encryption failed", err);
-}
-
-function mapDecryptError(err: unknown): ClearcryptError {
-  if (err instanceof ClearcryptError) {
-    return err;
-  }
-  if (err instanceof PasswordPolicyError) {
-    return new ClearcryptError("INVALID_PARAMS", err.message, err);
+  if (err instanceof FormatError) {
+    return new ClearcryptError("INVALID_FORMAT", "Invalid format", err);
   }
   if (err instanceof ResourcePolicyError) {
     return new ClearcryptError("RESOURCE_LIMIT", err.message, err);
   }
-  if (err instanceof InvalidResourcePolicyError) {
-    return new ClearcryptError("INVALID_PARAMS", err.message, err);
+  if (err instanceof AuthenticationError) {
+    return new ClearcryptError(
+      "AUTH_FAILED",
+      "Authentication failed or wrong password",
+      err
+    );
   }
-  if (err instanceof InvalidArchiveKdfParamsError) {
-    return new ClearcryptError("INVALID_FORMAT", "Invalid format", err);
+  if (err instanceof EnvironmentError) {
+    return new ClearcryptError(
+      "ENVIRONMENT_ERROR",
+      "Cryptographic environment unavailable",
+      err
+    );
   }
-  const message = err instanceof Error ? err.message : String(err);
-  if (
-    /invalid magic|unsupported version|unexpected end of file|invalid payload|unsupported cipher|unsupported wrap cipher|unsupported kdf/i.test(
-      message
-    )
-  ) {
-    return new ClearcryptError("INVALID_FORMAT", "Invalid or unsupported format", err);
+  if (err instanceof CryptoOperationError) {
+    return new ClearcryptError(
+      "CRYPTO_FAILED",
+      "Cryptographic operation failed",
+      err
+    );
   }
-  return new ClearcryptError("AUTH_FAILED", "Authentication failed or wrong password", err);
+  return new ClearcryptError("INTERNAL", "Internal error", err);
 }
 
 export async function encryptBytesV1(
@@ -95,11 +95,11 @@ export async function encryptBytesV1(
     const header: V1Header = {
       version: VERSION_V1,
       cipherId: CIPHER_AES_256_GCM,
-      nonce: randomBytes(12),
+      nonce: secureRandomBytes(12),
     };
 
-    const kdf = resolveV1KdfParams(randomBytes(16), options);
-    const wrapNonce = randomBytes(12);
+    const kdf = resolveV1KdfParams(secureRandomBytes(16), options);
+    const wrapNonce = secureRandomBytes(12);
 
     const { bytes } = await encryptV1WithPassword({
       header,
@@ -111,7 +111,7 @@ export async function encryptBytesV1(
 
     return bytes;
   } catch (err) {
-    throw mapEncryptError(err);
+    throw mapInternalError(err);
   }
 }
 
@@ -131,6 +131,6 @@ export async function decryptBytesV1(
     });
     return plaintext;
   } catch (err) {
-    throw mapDecryptError(err);
+    throw mapInternalError(err);
   }
 }

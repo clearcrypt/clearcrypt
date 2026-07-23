@@ -114,10 +114,13 @@ parameters are validated against this policy before Argon2id is started.
 API functions throw `ClearcryptError` with a short message and a `code`.
 Codes:
 - `INVALID_PARAMS`: a password, KDF profile, or KDF parameter is invalid.
-- `INVALID_FORMAT`: data is not a valid or supported V1 format.
+- `INVALID_FORMAT`: data is truncated or structurally invalid.
+- `UNSUPPORTED_FORMAT`: the version or an algorithm identifier is unknown.
 - `RESOURCE_LIMIT`: archive KDF parameters exceed the local resource policy.
 - `AUTH_FAILED`: wrong password or data was tampered with.
-- `CRYPTO_FAILED`: encryption failed for an unexpected reason.
+- `CRYPTO_FAILED`: a cryptographic operation failed.
+- `ENVIRONMENT_ERROR`: the required cryptographic runtime is unavailable.
+- `INTERNAL`: an unexpected, unclassified error occurred.
 
 Example:
 ```ts

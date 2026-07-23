@@ -89,7 +89,7 @@ describe("V1 decryption resource policy", () => {
   it("rejects an unsupported wrap algorithm before Argon2id", async () => {
     const archive = archiveWithKdf({}, { wrapCipherId: 0xff });
 
-    await expectErrorCode(decryptBytesV1(archive, "password"), "INVALID_FORMAT");
+    await expectErrorCode(decryptBytesV1(archive, "password"), "UNSUPPORTED_FORMAT");
     expect(deriveKekMock).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,10 @@
 import { AES_GCM_TAG_LENGTH_BITS } from "./spec/constants";
+import { getWebCrypto } from "./crypto-runtime";
+import {
+    AuthenticationError,
+    CryptoOperationError,
+    InvalidParamsError,
+} from "./errors";
 
 function toWebCryptoBytes(u8: Uint8Array): Uint8Array<ArrayBuffer> {
   if (u8.buffer instanceof ArrayBuffer) {
@@ -30,15 +36,19 @@ function combineCiphertextAndTag(
 
 export async function importAesGcmKey(raw32: Uint8Array): Promise<CryptoKey> {
     if (raw32.length !== 32) {
-        throw new Error("AES-256-GCM key must be 32 bytes");
+        throw new InvalidParamsError("AES-256-GCM key must be 32 bytes");
     }
-    return crypto.subtle.importKey(
-        "raw",
-        toWebCryptoBytes(raw32),
-        { name: "AES-GCM" },
-        false,
-        ["encrypt", "decrypt"]
-    );
+    try {
+        return await getWebCrypto().subtle.importKey(
+            "raw",
+            toWebCryptoBytes(raw32),
+            { name: "AES-GCM" },
+            false,
+            ["encrypt", "decrypt"]
+        );
+    } catch (cause) {
+        throw new CryptoOperationError("Unable to import AES-GCM key", cause);
+    }
 }
 
 export async function aeadEncryptAes256Gcm(params: {
@@ -50,7 +60,7 @@ export async function aeadEncryptAes256Gcm(params: {
     const { key, nonce, plaintext, associatedAuthenticatedData } = params;
 
     if (nonce.length !== 12) {
-        throw new Error("Nonce must be 12 bytes for AES-GCM (recommended/expected)");
+        throw new InvalidParamsError("Nonce must be 12 bytes for AES-GCM (recommended/expected)");
     }
 
     const algorithmorithm: AesGcmParams = {
@@ -62,12 +72,20 @@ export async function aeadEncryptAes256Gcm(params: {
         algorithmorithm.additionalData = toWebCryptoBytes(associatedAuthenticatedData);
     }
 
-    const out = new Uint8Array(
-        await crypto.subtle.encrypt(algorithmorithm, key, toWebCryptoBytes(plaintext))
-    );
+    let encrypted: ArrayBuffer;
+    try {
+        encrypted = await getWebCrypto().subtle.encrypt(
+            algorithmorithm,
+            key,
+            toWebCryptoBytes(plaintext)
+        );
+    } catch (cause) {
+        throw new CryptoOperationError("AES-GCM encryption failed", cause);
+    }
+    const out = new Uint8Array(encrypted);
 
     if (out.length < 16) {
-        throw new Error("Invalid Authenticated Encryption with Associated Data (AEAD) output");
+        throw new CryptoOperationError("Invalid Authenticated Encryption with Associated Data (AEAD) output");
     }
 
     const tag = out.subarray(out.length - 16);
@@ -86,10 +104,10 @@ export async function aeadDecryptAes256Gcm(params: {
     const { key, nonce, ciphertext, tag, associatedAuthenticatedData } = params;
 
     if (nonce.length !== 12) {
-        throw new Error("Nonce must be 12 bytes for AES-GCM (recommended/expected)");
+        throw new InvalidParamsError("Nonce must be 12 bytes for AES-GCM (recommended/expected)");
     }
     if (tag.length !== 16) {
-        throw new Error("Auth tag must be 16 bytes");
+        throw new InvalidParamsError("Auth tag must be 16 bytes");
     }
 
     const ciphertextTagCombined = combineCiphertextAndTag(ciphertext, tag);
@@ -103,10 +121,15 @@ export async function aeadDecryptAes256Gcm(params: {
         algorithm.additionalData = toWebCryptoBytes(associatedAuthenticatedData);
     }
 
-    const plainTextBuf = await crypto.subtle.decrypt(
-        algorithm,
-        key,
-        toWebCryptoBytes(ciphertextTagCombined)
-    );
+    let plainTextBuf: ArrayBuffer;
+    try {
+        plainTextBuf = await getWebCrypto().subtle.decrypt(
+            algorithm,
+            key,
+            toWebCryptoBytes(ciphertextTagCombined)
+        );
+    } catch (cause) {
+        throw new AuthenticationError(cause);
+    }
     return new Uint8Array(plainTextBuf);
 }
