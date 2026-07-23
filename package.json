@@ -26,12 +26,15 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
+    "check:types": "tsc --noEmit",
+    "check:package": "node scripts/check-package.mjs",
+    "check:release-tag": "node scripts/check-release-tag.mjs",
     "test": "vitest",
     "test:run": "vitest run",
     "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
     "test:vector:v1": "node scripts/verify-v1-vector.mjs",
-    "release:check": "npm run test:run && npm run build && npm pack --dry-run",
-    "release:publish": "npm publish --access public"
+    "release:check": "npm run check:types && npm run test:run && npm run test:vector:v1 && npm run build && npm run check:package",
+    "release:publish": "npm publish --access public --provenance"
   },
   "repository": {
     "type": "git",
@@ -44,6 +47,10 @@
   ],
   "author": "Khandova",
   "license": "AGPL-3.0",
+  "allowScripts": {
+    "esbuild@0.27.2": true,
+    "fsevents": false
+  },
   "bugs": {
     "url": "https://github.com/clearcrypt/clearcrypt/issues"
   },

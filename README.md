@@ -170,10 +170,18 @@ Stable exit codes:
 The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.
 
 ## Release process
-Run these steps on Node.js 24+ before publishing:
+
+Validate a release candidate locally on Node.js 24+:
+
 ```bash
 npm run release:check
-npm run release:publish
 ```
 
-`release:check` runs tests, build, and `npm pack --dry-run` to verify the package contents.
+`release:check` verifies TypeScript, unit tests, the independent V1 vector, the
+build, and the exact contents reported by `npm pack --dry-run`.
+
+Publishing is performed only by `.github/workflows/release.yml`. Update
+`package.json` and `CHANGELOG.md`, merge through the protected `main` branch,
+then push the matching `v<version>` tag. GitHub Actions publishes through npm
+Trusted Publishing/OIDC with provenance and creates the GitHub Release. See
+`SECURITY.md` for the required repository and npm settings.
