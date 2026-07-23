@@ -1,3 +1,5 @@
+import { passwordToBytes } from "./password";
+
 const ARGON2ID_FALLBACK = 2;
 const KEK_LENGTH_BYTES = 32;
 export const MIN_TIME_COST = 1;
@@ -8,13 +10,6 @@ export const MIN_PARALLELISM = 1;
 export const MAX_PARALLELISM = 16;
 let argon2Module: any = null;
 let nodeLoaderReady = false;
-
-function toBytes(input: Uint8Array | string): Uint8Array {
-  if (typeof input === "string") {
-    return new TextEncoder().encode(input);
-  }
-  return input;
-}
 
 export async function deriveKekArgon2id(params: {
   password: Uint8Array | string;
@@ -57,7 +52,7 @@ export async function deriveKekArgon2id(params: {
     }
   }
 
-  const pass = toBytes(password);
+  const pass = passwordToBytes(password);
   const type = (argon2Module as any)?.ArgonType?.Argon2id ?? ARGON2ID_FALLBACK;
 
   const result = await argon2Module.hash({

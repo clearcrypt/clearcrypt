@@ -19,6 +19,8 @@
     "docs/format-v1.md",
     "docs/memory-v1.md",
     "scripts/benchmark-memory-v1.mjs",
+    "scripts/cc-file.mjs",
+    "scripts/cli-password.mjs",
     "scripts/verify-v1-vector.mjs",
     "test/vectors/v1"
   ],

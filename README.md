@@ -85,6 +85,16 @@ confirmed by the planned cross-platform benchmarks.
 The salt, content nonce, wrapping nonce, and DEK are always generated inside the
 package with `crypto.getRandomValues()`. They cannot be supplied through the public API.
 
+## Password handling
+
+Public encryption and decryption accept a password from 1 through 1,024 bytes.
+String limits are measured after UTF-8 encoding; `Uint8Array` inputs are measured
+and used byte-for-byte.
+
+ClearCrypt never trims whitespace, changes case, or applies implicit Unicode
+normalization. For example, precomposed `é` and `e` followed by U+0301 are different
+passwords. Applications must preserve the exact password supplied by the user.
+
 `decryptBytesV1` accepts an optional local resource policy:
 
 ```ts
@@ -103,7 +113,7 @@ parameters are validated against this policy before Argon2id is started.
 ## Errors
 API functions throw `ClearcryptError` with a short message and a `code`.
 Codes:
-- `INVALID_PARAMS`: a KDF profile or KDF parameter is invalid.
+- `INVALID_PARAMS`: a password, KDF profile, or KDF parameter is invalid.
 - `INVALID_FORMAT`: data is not a valid or supported V1 format.
 - `RESOURCE_LIMIT`: archive KDF parameters exceed the local resource policy.
 - `AUTH_FAILED`: wrong password or data was tampered with.
@@ -128,6 +138,30 @@ try {
 The V1 file format is self-describing. Header/AAD fields are stored in cleartext but authenticated. The payload remains encrypted.
 The normative binary specification and deterministic vectors are documented in
 [`docs/format-v1.md`](docs/format-v1.md).
+
+## File CLI
+
+After building the package, files can be encrypted or decrypted with:
+
+```bash
+node scripts/cc-file.mjs encrypt <input> <output>
+node scripts/cc-file.mjs decrypt <input> <output>
+```
+
+Interactive password input is not echoed. Encryption asks for the password twice;
+decryption asks once. Passwords are never trimmed or printed. Use an interactive
+terminal rather than piping a password for normal operation.
+
+Stable exit codes:
+
+| Code | Meaning |
+| ---: | --- |
+| 0 | success |
+| 64 | invalid command-line usage |
+| 65 | password input, confirmation, or policy failure |
+| 66 | input file could not be read |
+| 73 | output file could not be written |
+| 74 | cryptographic or runtime failure |
 
 ## Compatibility
 The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.

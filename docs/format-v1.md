@@ -72,9 +72,11 @@ Implementations MUST NOT silently:
 - apply Unicode NFC, NFD, NFKC, or NFKD normalization;
 - otherwise replace or canonicalize code points.
 
-Visually identical Unicode strings can therefore be different passwords. Product
-interfaces may impose password length and empty-password policies, but those
-policies are not encoded in `CFENC001`.
+Visually identical Unicode strings can therefore be different passwords. The
+ClearCrypt public API accepts 1 through 1,024 password bytes, measured after UTF-8
+encoding for strings. This is a product/API policy and is not encoded in
+`CFENC001`; low-level format implementations may need to read legacy archives
+whose passwords fall outside that policy.
 
 Derive the 32-byte key-encryption key (KEK) with these Argon2 inputs:
 

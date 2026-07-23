@@ -9,6 +9,7 @@ import {
   ResourcePolicyError,
 } from "./resource-policy";
 import type { V1DecryptOptions } from "./resource-policy";
+import { PasswordPolicyError, validatePublicPassword } from "./password";
 
 export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
 export type { DecryptResourcePolicy, V1DecryptOptions } from "./resource-policy";
@@ -43,6 +44,9 @@ function mapEncryptError(err: unknown): ClearcryptError {
   if (err instanceof ClearcryptError) {
     return err;
   }
+  if (err instanceof PasswordPolicyError) {
+    return new ClearcryptError("INVALID_PARAMS", err.message, err);
+  }
   const message = err instanceof Error ? err.message : String(err);
   if (
     /nonce must be 12 bytes|salt must be 16 bytes|wrapped dek|unsupported kdf|timecost|memorycost|parallelism/i.test(
@@ -57,6 +61,9 @@ function mapEncryptError(err: unknown): ClearcryptError {
 function mapDecryptError(err: unknown): ClearcryptError {
   if (err instanceof ClearcryptError) {
     return err;
+  }
+  if (err instanceof PasswordPolicyError) {
+    return new ClearcryptError("INVALID_PARAMS", err.message, err);
   }
   if (err instanceof ResourcePolicyError) {
     return new ClearcryptError("RESOURCE_LIMIT", err.message, err);
@@ -84,6 +91,7 @@ export async function encryptBytesV1(
   options: V1EncryptOptions = {}
 ): Promise<Uint8Array> {
   try {
+    const passwordBytes = validatePublicPassword(password);
     const header: V1Header = {
       version: VERSION_V1,
       cipherId: CIPHER_AES_256_GCM,
@@ -96,7 +104,7 @@ export async function encryptBytesV1(
     const { bytes } = await encryptV1WithPassword({
       header,
       kdf,
-      password,
+      password: passwordBytes,
       wrapNonce,
       plaintext,
     });
@@ -113,9 +121,10 @@ export async function decryptBytesV1(
   options: V1DecryptOptions = {}
 ): Promise<Uint8Array> {
   try {
+    const passwordBytes = validatePublicPassword(password);
     const { plaintext } = await decryptV1WithPassword({
       data,
-      password,
+      password: passwordBytes,
       ...(options.resourcePolicy
         ? { resourcePolicy: options.resourcePolicy }
         : {}),
