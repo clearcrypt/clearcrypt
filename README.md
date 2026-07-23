@@ -126,6 +126,8 @@ try {
 
 ## Format note
 The V1 file format is self-describing. Header/AAD fields are stored in cleartext but authenticated. The payload remains encrypted.
+The normative binary specification and deterministic vectors are documented in
+[`docs/format-v1.md`](docs/format-v1.md).
 
 ## Compatibility
 The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.

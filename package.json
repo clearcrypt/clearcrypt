@@ -16,13 +16,18 @@
   },
   "files": [
     "dist",
-    "docs/memory-v1.md"
+    "docs/format-v1.md",
+    "docs/memory-v1.md",
+    "scripts/benchmark-memory-v1.mjs",
+    "scripts/verify-v1-vector.mjs",
+    "test/vectors/v1"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest",
     "test:run": "vitest run",
     "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
+    "test:vector:v1": "node scripts/verify-v1-vector.mjs",
     "release:check": "npm run test:run && npm run build && npm pack --dry-run",
     "release:publish": "npm publish --access public"
   },
