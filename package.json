@@ -40,11 +40,13 @@
     "check:release-tag": "node scripts/check-release-tag.mjs",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:browser": "playwright test",
+    "test:browser:install": "playwright install --with-deps chromium firefox webkit",
     "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
     "benchmark:argon2:v1": "node --expose-gc scripts/benchmark-argon2-v1.mjs",
     "benchmark:argon2:browser": "node scripts/serve-argon2-benchmark.mjs",
     "test:vector:v1": "node scripts/verify-v1-vector.mjs",
-    "release:check": "npm run check:types && npm run test:run && npm run test:vector:v1 && npm run build && npm run check:browser-bundle && npm run check:package",
+    "release:check": "npm run check:types && npm run test:run && npm run test:vector:v1 && npm run build && npm run check:browser-bundle && npm run test:browser && npm run check:package",
     "release:publish": "npm publish --access public --provenance"
   },
   "repository": {
@@ -70,6 +72,7 @@
     "argon2-browser": "1.18.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@types/node": "^25.0.3",
     "esbuild": "0.27.2",
     "tsup": "^8.5.1",

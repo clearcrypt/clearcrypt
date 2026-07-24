@@ -9,6 +9,8 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Add Playwright interoperability tests on Chromium, Firefox, and WebKit,
+  including Web Workers, concurrent calls, failures, and cancellation.
 - Version the Argon2id profiles and add reproducible Node.js and browser
   benchmarks for latency, memory, concurrency, UI blocking, and Web Workers.
 - Pin and isolate `argon2-browser@1.18.0`, validate its audited WASM, enforce

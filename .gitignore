@@ -1,4 +1,6 @@
 notes.md
 node_modules/
 dist/
+playwright-report/
+test-results/
 docs/intern/*

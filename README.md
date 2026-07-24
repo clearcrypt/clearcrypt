@@ -171,6 +171,22 @@ Stable exit codes:
 ## Compatibility
 The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.
 
+## Browser tests
+
+The Playwright suite verifies Chromium, Firefox, and WebKit, including
+Node/browser archive interoperability, Web Workers, concurrent Argon2 calls,
+public errors, and Worker cancellation.
+
+Install the browser runtimes once, build, then run the suite:
+
+```bash
+npm run test:browser:install
+npm run build
+npm run test:browser
+```
+
+Use `npm run test:browser -- --project=chromium` to run one engine.
+
 ## Release process
 
 Validate a release candidate locally on Node.js 24+:
@@ -179,8 +195,8 @@ Validate a release candidate locally on Node.js 24+:
 npm run release:check
 ```
 
-`release:check` verifies TypeScript, unit tests, the independent V1 vector, the
-build, and the exact contents reported by `npm pack --dry-run`.
+`release:check` verifies TypeScript, unit and browser tests, the independent V1
+vector, the build, and the exact contents reported by `npm pack --dry-run`.
 
 Publishing is performed only by `.github/workflows/release.yml`. Update
 `package.json` and `CHANGELOG.md`, merge through the protected `main` branch,
