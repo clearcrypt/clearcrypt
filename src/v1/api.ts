@@ -17,6 +17,13 @@ import { validatePublicPassword } from "./password";
 import { secureRandomBytes } from "./crypto-runtime";
 
 export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
+export {
+  KDF_PROFILES_V1,
+} from "./encrypt-options";
+export type {
+  LegacyKdfProfile,
+  VersionedKdfProfile,
+} from "./encrypt-options";
 export type { DecryptResourcePolicy, V1DecryptOptions } from "./resource-policy";
 
 export type ClearcryptErrorCode =

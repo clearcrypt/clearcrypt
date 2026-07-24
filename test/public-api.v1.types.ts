@@ -1,9 +1,20 @@
-import type { V1DecryptOptions, V1EncryptOptions } from "../src/index";
+import { KDF_PROFILES_V1 } from "../src/index";
+import type {
+  KdfProfile,
+  LegacyKdfProfile,
+  V1DecryptOptions,
+  V1EncryptOptions,
+  VersionedKdfProfile,
+} from "../src/index";
 
 const validOptions: V1EncryptOptions = {
-  kdfProfile: "interactive",
+  kdfProfile: "interactive-v1",
   kdf: { timeCost: 2, memoryCost: 64 * 1024, parallelism: 2 },
 };
+const versionedProfile: VersionedKdfProfile = "hardened-v1";
+const legacyProfile: LegacyKdfProfile = "interactive";
+const compatibleProfile: KdfProfile = legacyProfile;
+const hardenedMemoryCost: number = KDF_PROFILES_V1[versionedProfile].memoryCost;
 
 // @ts-expect-error Random nonces are intentionally not part of the public API.
 const optionsWithNonce: V1EncryptOptions = { nonce: new Uint8Array(12) };
@@ -25,6 +36,8 @@ void [
   optionsWithWrapNonce,
   optionsWithKdfId,
   optionsWithNestedSalt,
+  compatibleProfile,
+  hardenedMemoryCost,
 ];
 
 const validDecryptOptions: V1DecryptOptions = {

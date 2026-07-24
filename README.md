@@ -74,13 +74,15 @@ decryptBytesV1(
 ## Options
 `encryptBytesV1` accepts optional KDF settings:
 
-- `kdfProfile`: `"interactive"` (default) or `"hardened"`
+- `kdfProfile`: `"interactive-v1"` (default) or `"hardened-v1"`
 - `kdf`: `{ timeCost, memoryCost, parallelism }`
 
-The provisional `interactive` profile uses 64 MiB, 2 passes, and parallelism 2.
-The provisional `hardened` profile uses 128 MiB, 3 passes, and parallelism 2.
-Explicit `kdf` values override the selected profile. Profile values will be
-confirmed by the planned cross-platform benchmarks.
+The versioned `interactive-v1` profile uses 64 MiB, 2 passes, and parallelism 2.
+The versioned `hardened-v1` profile uses 128 MiB, 3 passes, and parallelism 2.
+The former names `"interactive"` and `"hardened"` remain compatibility aliases.
+Explicit `kdf` values override the selected profile. See the
+[Argon2id V1 benchmark protocol](docs/argon2-profiles-v1.md) for the reproducible
+Node.js and browser measurements.
 
 The salt, content nonce, wrapping nonce, and DEK are always generated inside the
 package with `crypto.getRandomValues()`. They cannot be supplied through the public API.

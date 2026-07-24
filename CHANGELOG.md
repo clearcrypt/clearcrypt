@@ -9,6 +9,8 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Version the Argon2id profiles and add reproducible Node.js and browser
+  benchmarks for latency, memory, concurrency, UI blocking, and Web Workers.
 - Pin and isolate `argon2-browser@1.18.0`, validate its audited WASM, enforce
   Argon2id v1.3 output, and serialize access to its shared runtime.
 - Add typed internal errors and stable public error codes.

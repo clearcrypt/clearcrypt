@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClearCrypt Argon2id benchmark</title>
+    <style>
+      :root { color-scheme: light dark; font: 16px system-ui, sans-serif; }
+      body { margin: 2rem auto; max-width: 58rem; padding: 0 1rem; }
+      fieldset { display: grid; gap: .75rem; margin: 1rem 0; }
+      label { display: grid; gap: .25rem; }
+      button, select, input { font: inherit; padding: .5rem; }
+      pre { overflow: auto; padding: 1rem; background: CanvasText; color: Canvas; }
+      .warning { border-left: .3rem solid #d88b00; padding-left: .8rem; }
+    </style>
+  </head>
+  <body>
+    <h1>ClearCrypt Argon2id benchmark</h1>
+    <p class="warning">
+      Run on an idle device, plugged in when appropriate. Results are
+      observations and never change ClearCrypt parameters automatically.
+    </p>
+    <fieldset>
+      <legend>Protocol</legend>
+      <label>
+        Profile
+        <select id="profile">
+          <option value="all">All V1 profiles</option>
+          <option value="interactive-v1">interactive-v1</option>
+          <option value="hardened-v1">hardened-v1</option>
+        </select>
+      </label>
+      <label>
+        Execution
+        <select id="mode">
+          <option value="both">Main thread and Web Worker</option>
+          <option value="main">Main thread only</option>
+          <option value="worker">Web Worker only</option>
+        </select>
+      </label>
+      <label>
+        Measured runs
+        <input id="runs" type="number" min="1" max="20" value="5">
+      </label>
+      <button id="run" type="button">Run benchmark</button>
+    </fieldset>
+    <p id="status">Ready.</p>
+    <button id="download" type="button" disabled>Download JSON report</button>
+    <pre id="output">No result yet.</pre>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
