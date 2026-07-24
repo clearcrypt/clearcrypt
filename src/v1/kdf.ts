@@ -4,8 +4,11 @@ import {
   EnvironmentError,
   InvalidParamsError,
 } from "./errors";
+import {
+  ARGON2_VERSION_DECIMAL,
+  hashArgon2id,
+} from "./argon2/runtime";
 
-const ARGON2ID_FALLBACK = 2;
 const KEK_LENGTH_BYTES = 32;
 export const MIN_TIME_COST = 1;
 export const MAX_TIME_COST = 10;
@@ -13,9 +16,6 @@ export const MIN_MEMORY_COST_KIB = 8 * 1024;
 export const MAX_MEMORY_COST_KIB = 256 * 1024;
 export const MIN_PARALLELISM = 1;
 export const MAX_PARALLELISM = 16;
-let argon2Module: any = null;
-let nodeLoaderReady = false;
-
 export async function deriveKekArgon2id(params: {
   password: Uint8Array | string;
   salt: Uint8Array;
@@ -27,58 +27,26 @@ export async function deriveKekArgon2id(params: {
 
   assertValidArgon2idParams({ salt, timeCost, memoryCost, parallelism });
 
-  try {
-    if (!nodeLoaderReady && typeof process !== "undefined" && process.versions?.node) {
-      const [{ readFileSync }, { createRequire }] = await Promise.all([
-        import("node:fs"),
-        import("node:module"),
-      ]);
-      const require = createRequire(import.meta.url);
-      const wasmPath = require.resolve("argon2-browser/dist/argon2.wasm");
-      const wasmBinary = readFileSync(wasmPath);
-      const globalAny = globalThis as {
-        self?: unknown;
-        loadArgon2WasmBinary?: () => Promise<Uint8Array>;
-        Module?: { wasmBinary?: Uint8Array | ArrayBuffer };
-      };
-      globalAny.self = globalThis;
-      globalAny.Module = globalAny.Module ?? {};
-      globalAny.Module.wasmBinary = wasmBinary;
-      globalAny.loadArgon2WasmBinary = () => Promise.resolve(new Uint8Array(wasmBinary));
-      nodeLoaderReady = true;
-    }
-
-    if (!argon2Module) {
-      if (typeof process !== "undefined" && process.versions?.node) {
-        const { createRequire } = await import("node:module");
-        const require = createRequire(import.meta.url);
-        argon2Module = require("argon2-browser/lib/argon2.js");
-      } else {
-        argon2Module = await import("argon2-browser/lib/argon2.js");
-      }
-    }
-  } catch (cause) {
-    throw new EnvironmentError("Argon2id is not available", cause);
-  }
-
   const pass = passwordToBytes(password);
-  const type = (argon2Module as any)?.ArgonType?.Argon2id ?? ARGON2ID_FALLBACK;
-
-  let result: { hash: Uint8Array | ArrayBuffer };
+  let result: { hash: Uint8Array | ArrayBuffer; encoded: string };
   try {
-    result = await argon2Module.hash({
-      pass,
+    result = await hashArgon2id({
+      password: pass,
       salt,
-      time: timeCost,
-      mem: memoryCost,
+      timeCost,
+      memoryCostKiB: memoryCost,
       parallelism,
-      hashLen: KEK_LENGTH_BYTES,
-      type,
+      hashLengthBytes: KEK_LENGTH_BYTES,
     });
   } catch (cause) {
     throw new EnvironmentError("Argon2id execution failed", cause);
   }
 
+  if (!result.encoded.startsWith(`$argon2id$v=${ARGON2_VERSION_DECIMAL}$`)) {
+    throw new CryptoOperationError(
+      "Argon2id returned an unexpected algorithm or version"
+    );
+  }
   const hash = result.hash instanceof Uint8Array
     ? result.hash
     : new Uint8Array(result.hash);

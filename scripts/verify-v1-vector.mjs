@@ -32,26 +32,59 @@ const assertHex = (label, actual, expected) => {
   }
 };
 
-async function loadArgon2() {
+function setTemporaryGlobal(name, value, previous) {
+  previous.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+}
+
+function restoreGlobals(previous) {
+  for (const [name, descriptor] of previous) {
+    if (descriptor) {
+      Object.defineProperty(globalThis, name, descriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, name);
+    }
+  }
+}
+
+function loadArgon2(previous) {
   const wasmBinary = readFileSync(require.resolve("argon2-browser/dist/argon2.wasm"));
-  globalThis.self = globalThis;
-  globalThis.Module = { wasmBinary };
-  globalThis.loadArgon2WasmBinary = () => Promise.resolve(new Uint8Array(wasmBinary));
+  setTemporaryGlobal("self", globalThis, previous);
+  setTemporaryGlobal("Module", { wasmBinary }, previous);
+  setTemporaryGlobal(
+    "loadArgon2WasmBinary",
+    () => Promise.resolve(new Uint8Array(wasmBinary)),
+    previous
+  );
   return require("argon2-browser/lib/argon2.js");
 }
 
 async function deriveKek(passwordBytes, kdf) {
-  const argon2 = await loadArgon2();
-  const result = await argon2.hash({
-    pass: passwordBytes,
-    salt: fromHex(kdf.saltHex),
-    time: kdf.timeCost,
-    mem: kdf.memoryCostKiB,
-    parallelism: kdf.parallelism,
-    hashLen: kdf.outputLengthBytes,
-    type: argon2.ArgonType.Argon2id,
-  });
-  return result.hash instanceof Uint8Array ? result.hash : new Uint8Array(result.hash);
+  const previousGlobals = new Map();
+  try {
+    const argon2 = loadArgon2(previousGlobals);
+    const result = await argon2.hash({
+      pass: passwordBytes,
+      salt: fromHex(kdf.saltHex),
+      time: kdf.timeCost,
+      mem: kdf.memoryCostKiB,
+      parallelism: kdf.parallelism,
+      hashLen: kdf.outputLengthBytes,
+      type: argon2.ArgonType.Argon2id,
+    });
+    if (!result.encoded.startsWith(`$argon2id$v=${kdf.version}$`)) {
+      throw new Error("argon2-browser returned an unexpected algorithm or version");
+    }
+    return result.hash instanceof Uint8Array
+      ? result.hash
+      : new Uint8Array(result.hash);
+  } finally {
+    restoreGlobals(previousGlobals);
+  }
 }
 
 async function aesGcmEncrypt(keyBytes, nonce, plaintext, aad) {

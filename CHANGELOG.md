@@ -9,6 +9,8 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Pin and isolate `argon2-browser@1.18.0`, validate its audited WASM, enforce
+  Argon2id v1.3 output, and serialize access to its shared runtime.
 - Add typed internal errors and stable public error codes.
 - Add decryption resource limits and password input limits.
 - Add a Node.js compatibility CI matrix, dependency review, and Dependabot.

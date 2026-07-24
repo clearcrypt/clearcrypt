@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 const expectedFiles = [
   "LICENSE",
   "README.md",
+  "dist/browser.js",
   "dist/index.d.ts",
   "dist/index.js",
   "docs/format-v1.md",

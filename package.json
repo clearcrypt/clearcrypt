@@ -7,11 +7,15 @@
     "node": ">=24"
   },
   "main": "dist/index.js",
+  "browser": "dist/browser.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "browser": "./dist/browser.js",
+      "node": "./dist/index.js",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
     }
   },
   "files": [
@@ -25,7 +29,8 @@
     "test/vectors/v1"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup --config tsup.node.config.ts && tsup --config tsup.browser.config.ts",
+    "check:browser-bundle": "node scripts/check-browser-bundle.mjs",
     "check:types": "tsc --noEmit",
     "check:package": "node scripts/check-package.mjs",
     "check:release-tag": "node scripts/check-release-tag.mjs",
@@ -33,7 +38,7 @@
     "test:run": "vitest run",
     "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
     "test:vector:v1": "node scripts/verify-v1-vector.mjs",
-    "release:check": "npm run check:types && npm run test:run && npm run test:vector:v1 && npm run build && npm run check:package",
+    "release:check": "npm run check:types && npm run test:run && npm run test:vector:v1 && npm run build && npm run check:browser-bundle && npm run check:package",
     "release:publish": "npm publish --access public --provenance"
   },
   "repository": {
@@ -56,10 +61,11 @@
   },
   "homepage": "https://github.com/clearcrypt/clearcrypt#readme",
   "dependencies": {
-    "argon2-browser": "^1.18.0"
+    "argon2-browser": "1.18.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
+    "esbuild": "0.27.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
