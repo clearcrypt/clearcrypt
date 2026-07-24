@@ -40,6 +40,7 @@
     "check:release-tag": "node scripts/check-release-tag.mjs",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:fuzz": "node scripts/run-parser-fuzz.mjs",
     "test:browser": "playwright test",
     "test:browser:install": "playwright install --with-deps chromium firefox webkit",
     "benchmark:memory:v1": "node --expose-gc scripts/benchmark-memory-v1.mjs",
@@ -75,6 +76,7 @@
     "@playwright/test": "1.61.1",
     "@types/node": "^25.0.3",
     "esbuild": "0.27.2",
+    "fast-check": "4.9.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"

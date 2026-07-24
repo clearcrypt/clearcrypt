@@ -9,6 +9,8 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Add deterministic property tests, full-header and truncation mutation checks,
+  an invalid corpus, and scheduled parser fuzzing with resource-allocation guards.
 - Add Playwright interoperability tests on Chromium, Firefox, and WebKit,
   including Web Workers, concurrent calls, failures, and cancellation.
 - Version the Argon2id profiles and add reproducible Node.js and browser
