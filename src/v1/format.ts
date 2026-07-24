@@ -18,6 +18,7 @@ import {
   UnsupportedAlgorithmError,
   UnsupportedFormatError,
 } from "./errors";
+import { wipeBytesBestEffort } from "./memory";
 
 /* =========
  * Encode
@@ -235,15 +236,19 @@ export async function encryptV1WithKek(params: {
   const { header, kdf, kekRaw32, wrapNonce, plaintext } = params;
 
   const dek = secureRandomBytes(32);
-  const wrappedDek = await wrapDekWithKek({ dek, kekRaw32, wrapNonce });
+  try {
+    const wrappedDek = await wrapDekWithKek({ dek, kekRaw32, wrapNonce });
 
-  return encryptV1WithDek({
-    header,
-    kdf,
-    wrappedDek,
-    dek,
-    plaintext,
-  });
+    return await encryptV1WithDek({
+      header,
+      kdf,
+      wrappedDek,
+      dek,
+      plaintext,
+    });
+  } finally {
+    wipeBytesBestEffort(dek);
+  }
 }
 
 export async function decryptV1WithKek(params: {
@@ -259,15 +264,19 @@ export async function decryptV1WithKek(params: {
 
   const envelope = decodeEnvelopeV1(data);
   assertSupportedEnvelopeV1(envelope);
-  const dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
-
-  const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
-  return {
-    plaintext,
-    header: envelope.header,
-    kdf: envelope.kdf,
-    wrappedDek: envelope.wrap,
-  };
+  let dek: Uint8Array | undefined;
+  try {
+    dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
+    const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
+    return {
+      plaintext,
+      header: envelope.header,
+      kdf: envelope.kdf,
+      wrappedDek: envelope.wrap,
+    };
+  } finally {
+    wipeBytesBestEffort(dek);
+  }
 }
 
 export async function encryptV1WithPassword(params: {
@@ -290,13 +299,17 @@ export async function encryptV1WithPassword(params: {
     parallelism: kdf.parallelism,
   });
 
-  return encryptV1WithKek({
-    header,
-    kdf,
-    kekRaw32,
-    wrapNonce,
-    plaintext,
-  });
+  try {
+    return await encryptV1WithKek({
+      header,
+      kdf,
+      kekRaw32,
+      wrapNonce,
+      plaintext,
+    });
+  } finally {
+    wipeBytesBestEffort(kekRaw32);
+  }
 }
 
 export async function decryptV1WithPassword(params: {
@@ -315,22 +328,29 @@ export async function decryptV1WithPassword(params: {
   assertSupportedEnvelopeV1(envelope);
   enforceDecryptResourcePolicy(envelope.kdf, resourcePolicy);
 
-  const kekRaw32 = await deriveKekArgon2id({
-    password,
-    salt: envelope.kdf.salt,
-    timeCost: envelope.kdf.timeCost,
-    memoryCost: envelope.kdf.memoryCost,
-    parallelism: envelope.kdf.parallelism,
-  });
+  let kekRaw32: Uint8Array | undefined;
+  let dek: Uint8Array | undefined;
+  try {
+    kekRaw32 = await deriveKekArgon2id({
+      password,
+      salt: envelope.kdf.salt,
+      timeCost: envelope.kdf.timeCost,
+      memoryCost: envelope.kdf.memoryCost,
+      parallelism: envelope.kdf.parallelism,
+    });
 
-  const dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
-  const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
-  return {
-    plaintext,
-    header: envelope.header,
-    kdf: envelope.kdf,
-    wrappedDek: envelope.wrap,
-  };
+    dek = await unwrapDekWithKek({ wrap: envelope.wrap, kekRaw32 });
+    const plaintext = await decryptEnvelopeV1WithDek(envelope, dek);
+    return {
+      plaintext,
+      header: envelope.header,
+      kdf: envelope.kdf,
+      wrappedDek: envelope.wrap,
+    };
+  } finally {
+    wipeBytesBestEffort(dek);
+    wipeBytesBestEffort(kekRaw32);
+  }
 }
 
 

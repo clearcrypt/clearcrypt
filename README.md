@@ -1,5 +1,12 @@
 # clearcrypt
-Client-side, zero-knowledge file encryption core. This repository provides an auditable cryptographic core for encrypting and decrypting files locally using a password-based model. No plaintext, secrets, or keys are ever stored or transmitted. Includes a versioned, self-describing file format.
+Client-side, zero-knowledge file encryption core. This repository provides an
+auditable cryptographic core for encrypting and decrypting files locally using a
+password-based model.
+
+The core does not intentionally persist or transmit plaintext, passwords, or
+keys. These values temporarily exist in the client process memory during the
+cryptographic operation. Best-effort wiping is applied to package-owned
+temporary buffers, without claiming guaranteed zeroization in JavaScript.
 
 ## Requirements
 - Node.js 24 or newer.
@@ -54,7 +61,9 @@ writeFileSync("decrypted.txt", decrypted);
 - Current API is buffer-based (`Uint8Array` in / `Uint8Array` out). It is not a streaming API.
 - For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
 - For very large files, enforce UI size limits until a streaming API is introduced.
-- See [`docs/memory-v1.md`](docs/memory-v1.md) for the peak-memory model and benchmark.
+- The KDF resource policy limits Argon2 parameters, not the archive or plaintext size.
+- See [`docs/memory-v1.md`](docs/memory-v1.md) for buffer ownership, secret
+  lifetime, the peak-memory model, and benchmark.
 
 ## API reference
 ```ts

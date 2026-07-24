@@ -8,6 +8,7 @@ import {
   ARGON2_VERSION_DECIMAL,
   hashArgon2id,
 } from "./argon2/runtime";
+import { wipeBytesBestEffort } from "./memory";
 
 const KEK_LENGTH_BYTES = 32;
 export const MIN_TIME_COST = 1;
@@ -27,6 +28,7 @@ export async function deriveKekArgon2id(params: {
 
   assertValidArgon2idParams({ salt, timeCost, memoryCost, parallelism });
 
+  const ownsPasswordBytes = typeof password === "string";
   const pass = passwordToBytes(password);
   let result: { hash: Uint8Array | ArrayBuffer; encoded: string };
   try {
@@ -40,20 +42,29 @@ export async function deriveKekArgon2id(params: {
     });
   } catch (cause) {
     throw new EnvironmentError("Argon2id execution failed", cause);
+  } finally {
+    if (ownsPasswordBytes) {
+      wipeBytesBestEffort(pass);
+    }
   }
 
-  if (!result.encoded.startsWith(`$argon2id$v=${ARGON2_VERSION_DECIMAL}$`)) {
-    throw new CryptoOperationError(
-      "Argon2id returned an unexpected algorithm or version"
-    );
-  }
   const hash = result.hash instanceof Uint8Array
     ? result.hash
     : new Uint8Array(result.hash);
-  if (hash.length !== KEK_LENGTH_BYTES) {
-    throw new CryptoOperationError("Argon2id returned an invalid key length");
+  try {
+    if (!result.encoded.startsWith(`$argon2id$v=${ARGON2_VERSION_DECIMAL}$`)) {
+      throw new CryptoOperationError(
+        "Argon2id returned an unexpected algorithm or version"
+      );
+    }
+    if (hash.length !== KEK_LENGTH_BYTES) {
+      throw new CryptoOperationError("Argon2id returned an invalid key length");
+    }
+    return hash;
+  } catch (error) {
+    wipeBytesBestEffort(hash);
+    throw error;
   }
-  return hash;
 }
 
 export function assertValidArgon2idParams(params: {

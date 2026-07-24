@@ -1,4 +1,5 @@
 import { InvalidParamsError } from "./errors";
+import { wipeBytesBestEffort } from "./memory";
 
 export const MAX_PUBLIC_PASSWORD_BYTES = 1024;
 
@@ -18,7 +19,8 @@ export function passwordToBytes(password: Uint8Array | string): Uint8Array {
 export function validatePublicPassword(
   password: Uint8Array | string
 ): Uint8Array {
-  if (typeof password === "string") {
+  const ownsEncodedBytes = typeof password === "string";
+  if (ownsEncodedBytes) {
     if (password.length === 0) {
       throw new PasswordPolicyError("Password must not be empty");
     }
@@ -31,13 +33,20 @@ export function validatePublicPassword(
     }
   }
   const bytes = passwordToBytes(password);
-  if (bytes.length === 0) {
-    throw new PasswordPolicyError("Password must not be empty");
+  try {
+    if (bytes.length === 0) {
+      throw new PasswordPolicyError("Password must not be empty");
+    }
+    if (bytes.length > MAX_PUBLIC_PASSWORD_BYTES) {
+      throw new PasswordPolicyError(
+        `Password must not exceed ${MAX_PUBLIC_PASSWORD_BYTES} UTF-8 bytes`
+      );
+    }
+    return bytes;
+  } catch (error) {
+    if (ownsEncodedBytes) {
+      wipeBytesBestEffort(bytes);
+    }
+    throw error;
   }
-  if (bytes.length > MAX_PUBLIC_PASSWORD_BYTES) {
-    throw new PasswordPolicyError(
-      `Password must not exceed ${MAX_PUBLIC_PASSWORD_BYTES} UTF-8 bytes`
-    );
-  }
-  return bytes;
 }

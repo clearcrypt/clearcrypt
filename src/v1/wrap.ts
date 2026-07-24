@@ -6,6 +6,7 @@ import {
   InvalidParamsError,
   UnsupportedAlgorithmError,
 } from "./errors";
+import { wipeBytesBestEffort } from "./memory";
 
 export async function wrapDekWithKek(params: {
   dek: Uint8Array;        // 32 bytes
@@ -57,6 +58,7 @@ export async function unwrapDekWithKek(params: {
   });
 
   if (dek.length !== 32) {
+    wipeBytesBestEffort(dek);
     throw new CryptoOperationError("Unwrapped DEK must be 32 bytes");
   }
 

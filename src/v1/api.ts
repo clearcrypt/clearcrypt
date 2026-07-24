@@ -15,6 +15,7 @@ import {
 import type { V1DecryptOptions } from "./resource-policy";
 import { validatePublicPassword } from "./password";
 import { secureRandomBytes } from "./crypto-runtime";
+import { wipeBytesBestEffort } from "./memory";
 
 export type { KdfProfile, V1EncryptOptions, V1KdfOptions } from "./encrypt-options";
 export {
@@ -97,8 +98,10 @@ export async function encryptBytesV1(
   password: Uint8Array | string,
   options: V1EncryptOptions = {}
 ): Promise<Uint8Array> {
+  let passwordBytes: Uint8Array | undefined;
+  const ownsPasswordBytes = typeof password === "string";
   try {
-    const passwordBytes = validatePublicPassword(password);
+    passwordBytes = validatePublicPassword(password);
     const header: V1Header = {
       version: VERSION_V1,
       cipherId: CIPHER_AES_256_GCM,
@@ -119,6 +122,10 @@ export async function encryptBytesV1(
     return bytes;
   } catch (err) {
     throw mapInternalError(err);
+  } finally {
+    if (ownsPasswordBytes) {
+      wipeBytesBestEffort(passwordBytes);
+    }
   }
 }
 
@@ -127,8 +134,10 @@ export async function decryptBytesV1(
   password: Uint8Array | string,
   options: V1DecryptOptions = {}
 ): Promise<Uint8Array> {
+  let passwordBytes: Uint8Array | undefined;
+  const ownsPasswordBytes = typeof password === "string";
   try {
-    const passwordBytes = validatePublicPassword(password);
+    passwordBytes = validatePublicPassword(password);
     const { plaintext } = await decryptV1WithPassword({
       data,
       password: passwordBytes,
@@ -139,5 +148,9 @@ export async function decryptBytesV1(
     return plaintext;
   } catch (err) {
     throw mapInternalError(err);
+  } finally {
+    if (ownsPasswordBytes) {
+      wipeBytesBestEffort(passwordBytes);
+    }
   }
 }

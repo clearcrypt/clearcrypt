@@ -60,10 +60,13 @@ describe("V1 public password policy", () => {
 
   it("accepts exactly 1024 bytes", async () => {
     const password = new Uint8Array(MAX_PUBLIC_PASSWORD_BYTES).fill(0x61);
+    const originalPassword = password.slice();
     const plaintext = bytes(8, (i) => 0xa0 + i);
     const archive = await encryptBytesV1(plaintext, password, { kdf: FAST_KDF });
 
+    expect(password).toEqual(originalPassword);
     await expect(decryptBytesV1(archive, password)).resolves.toEqual(plaintext);
+    expect(password).toEqual(originalPassword);
   });
 
   it("measures string limits after UTF-8 encoding", async () => {

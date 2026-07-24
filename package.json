@@ -1,7 +1,7 @@
 {
   "name": "clearcrypt",
   "version": "1.0.0",
-  "description": "Client-side, zero-knowledge file encryption core. This repository provides an auditable cryptographic core for encrypting and decrypting files locally using a password-based model. No plaintext, secrets, or keys are ever stored or transmitted. Includes a versioned, self-describing file format.",
+  "description": "Client-side, zero-knowledge file encryption core. The core does not intentionally persist or transmit plaintext, passwords, or keys; these values temporarily exist in client-process memory during cryptographic operations. Includes a versioned, self-describing file format.",
   "type": "module",
   "engines": {
     "node": ">=24"
