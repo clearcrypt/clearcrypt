@@ -1,6 +1,6 @@
 {
   "name": "clearcrypt",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Auditable client-side file encryption for browsers, Node.js and AI-agent workflows. Argon2id, AES-256-GCM, zero-knowledge design and offline decryption.",
   "type": "module",
   "engines": {
