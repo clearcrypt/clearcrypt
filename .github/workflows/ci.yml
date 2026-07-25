@@ -39,6 +39,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Build the package
+        run: npm run build
+
       - name: Check TypeScript
         run: npm run check:types
 
@@ -48,8 +51,6 @@ jobs:
       - name: Verify the independent V1 vector
         run: npm run test:vector:v1
 
-      - name: Build the package
-        run: npm run build
 
       - name: Verify the browser bundle
         run: npm run check:browser-bundle
