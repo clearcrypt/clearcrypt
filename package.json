@@ -1,7 +1,7 @@
 {
   "name": "clearcrypt",
   "version": "1.1.0",
-  "description": "Client-side, zero-knowledge file encryption core. The core does not intentionally persist or transmit plaintext, passwords, or keys; these values temporarily exist in client-process memory during cryptographic operations. Includes a versioned, self-describing file format.",
+  "description": "Auditable client-side file encryption for browsers, Node.js and AI-agent workflows. Argon2id, AES-256-GCM, zero-knowledge design and offline decryption.",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -55,9 +55,32 @@
     "url": "git+ssh://git@github.com/clearcrypt/clearcrypt.git"
   },
   "keywords": [
-    "encrypt",
-    "file",
-    "crypt"
+    "file-encryption",
+    "client-side-encryption",
+    "browser-encryption",
+    "local-encryption",
+    "zero-knowledge",
+    "password-based-encryption",
+    "authenticated-encryption",
+    "envelope-encryption",
+    "aes-gcm",
+    "aes-256-gcm",
+    "argon2id",
+    "webcrypto",
+    "cryptography",
+    "encrypted-archive",
+    "encrypted-file-format",
+    "offline-decryption",
+    "pre-upload-encryption",
+    "backup-encryption",
+    "privacy",
+    "security",
+    "typescript",
+    "nodejs",
+    "browser",
+    "ai-agent",
+    "agentic-workflows",
+    "automation"
   ],
   "author": "Khandova",
   "license": "AGPL-3.0",

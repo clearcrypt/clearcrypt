@@ -1,12 +1,13 @@
-# clearcrypt
-Client-side, zero-knowledge file encryption core. This repository provides an
-auditable cryptographic core for encrypting and decrypting files locally using a
-password-based model.
+# ClearCrypt
 
-The core does not intentionally persist or transmit plaintext, passwords, or
-keys. These values temporarily exist in the client process memory during the
-cryptographic operation. Best-effort wiping is applied to package-owned
-temporary buffers, without claiming guaranteed zeroization in JavaScript.
+**Auditable client-side file encryption for browsers, Node.js and AI-agent workflows.**
+
+ClearCrypt encrypts files locally with Argon2id and AES-256-GCM before
+upload, transfer, backup or archival. The library does not transmit plaintext,
+passwords or encryption keys.
+
+It produces a public, versioned and self-describing encrypted archive format
+that can be decrypted offline without the ClearCrypt service.
 
 ## Requirements
 - Node.js 24 or newer.
@@ -228,3 +229,61 @@ Publishing is performed only by `.github/workflows/release.yml`. Update
 then push the matching `v<version>` tag. GitHub Actions publishes through npm
 Trusted Publishing/OIDC with provenance and creates the GitHub Release. See
 `SECURITY.md` for the required repository and npm settings.
+
+## AI agents and automated workflows
+
+ClearCrypt can be invoked by an authorized AI agent, browser automation,
+or another automated workflow.
+
+The user or organization decides whether the agent is allowed to access:
+
+- the plaintext files;
+- the encryption password or secret;
+- the resulting encrypted archive.
+
+Encryption runs in the caller's browser or Node.js environment. ClearCrypt does
+not upload or transmit plaintext, passwords, KEKs or DEKs.
+
+Typical agent workflows include:
+
+- encrypting files before cloud or object-storage upload;
+- preparing encrypted backups;
+- encrypting completed project archives;
+- creating encrypted data for cold storage;
+- encrypting files before transfer to an external service.
+
+### example
+
+import { encryptBytesV1 } from "clearcrypt";
+
+const plaintext = await loadFileBytes();
+const secret = await getSecretFromAuthorizedAgentEnvironment();
+
+const encryptedArchive = await encryptBytesV1(
+  plaintext,
+  secret,
+  { kdfProfile: "hardened-v1" }
+);
+
+await uploadEncryptedArchive(encryptedArchive);
+
+The upload function is intentionally outside ClearCrypt. The package only
+produces encrypted bytes. Integrators remain responsible for storage,
+authentication, authorization and secret management.
+
+### Use ClearCrypt when
+
+- files must be encrypted before leaving the user's device;
+- the storage provider must not receive plaintext or encryption keys;
+- encrypted archives must remain decryptable offline;
+- a browser, Node.js application or authorized AI agent performs encryption;
+- an open and versioned encrypted file format is required.
+
+### ClearCrypt does not provide
+
+- cloud or cold storage;
+- password recovery;
+- server-side encryption;
+- file synchronization;
+- streaming encryption in the CFENC001 format;
+- HDS-certified health-data hosting.
