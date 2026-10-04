@@ -247,7 +247,7 @@ The API uses WebCrypto-compatible primitives and runs in modern browsers and Nod
 
 The Playwright suite verifies Chromium, Firefox, and WebKit, including
 Node/browser archive interoperability, Web Workers, concurrent Argon2 calls,
-public errors, and Worker cancellation.
+public errors, Worker cancellation, and the normative V2 vectors.
 
 Install the browser runtimes once, build, then run the suite:
 

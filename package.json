@@ -38,7 +38,9 @@
     "scripts/cli-password.mjs",
     "scripts/serve-argon2-benchmark.mjs",
     "scripts/verify-v1-vector.mjs",
-    "test/vectors/v1"
+    "scripts/verify-v2-vectors.mjs",
+    "test/vectors/v1",
+    "test/vectors/v2"
   ],
   "scripts": {
     "build": "tsup --config tsup.node.config.ts && tsup --config tsup.browser.config.ts",
@@ -56,7 +58,8 @@
     "benchmark:argon2:v1": "node --expose-gc scripts/benchmark-argon2-v1.mjs",
     "benchmark:argon2:browser": "node scripts/serve-argon2-benchmark.mjs",
     "test:vector:v1": "node scripts/verify-v1-vector.mjs",
-    "release:check": "npm run build && npm run check:types && npm run test:run && npm run test:cli:v2 && npm run test:vector:v1 && npm run check:browser-bundle && npm run test:browser && npm run check:package",
+    "test:vector:v2": "node scripts/verify-v2-vectors.mjs",
+    "release:check": "npm run build && npm run check:types && npm run test:run && npm run test:cli:v2 && npm run test:vector:v1 && npm run test:vector:v2 && npm run check:browser-bundle && npm run test:browser && npm run check:package",
     "release:publish": "npm publish --access public --provenance"
   },
   "repository": {

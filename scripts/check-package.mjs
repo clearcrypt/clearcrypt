@@ -23,7 +23,11 @@ const expectedFiles = [
   "scripts/cli-password.mjs",
   "scripts/serve-argon2-benchmark.mjs",
   "scripts/verify-v1-vector.mjs",
+  "scripts/verify-v2-vectors.mjs",
   "test/vectors/v1/unicode-password-binary-plaintext.json",
+  "test/vectors/v2/empty.json",
+  "test/vectors/v2/multiple-blocks.json",
+  "test/vectors/v2/unicode-binary.json",
 ].sort();
 
 const npmCli = process.env.npm_execpath;

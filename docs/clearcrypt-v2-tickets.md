@@ -375,6 +375,12 @@ Prouver que le cœur v2 fonctionne dans les navigateurs supportés sans bloquer 
 
 ### V2-014 — Publier des vecteurs normatifs v2
 
+**Statut : terminé le 4 octobre 2026.** Trois vecteurs normatifs couvrent le
+fichier vide, un mot de passe Unicode avec contenu binaire, plusieurs blocs et
+un dernier bloc court. Ils publient les dérivations des segments 0 et 1 ainsi
+que de `FINAL`. Un vérificateur indépendant reproduit et déchiffre les archives,
+les trois navigateurs les relisent, et une altération significative est rejetée.
+
 **Objectif**
 
 Permettre une implémentation indépendante de `CFENC002`.

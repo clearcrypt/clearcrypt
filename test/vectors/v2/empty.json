@@ -1,0 +1,72 @@
+{
+  "schema": "clearcrypt-cfenc002-test-vector-v1",
+  "name": "empty-plaintext",
+  "format": "CFENC002",
+  "password": {
+    "value": "empty-vector-password",
+    "utf8Hex": "656d7074792d766563746f722d70617373776f7264"
+  },
+  "plaintext": {
+    "encoding": "hex",
+    "valueHex": "",
+    "length": 0,
+    "sha256Hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "kdf": {
+    "algorithm": "argon2id",
+    "version": 19,
+    "outputLengthBytes": 32,
+    "timeCost": 1,
+    "memoryCostKiB": 8192,
+    "parallelism": 1
+  },
+  "inputs": {
+    "archiveIdHex": "000102030405060708090a0b0c0d0e0f",
+    "contentNoncePrefixHex": "10111213",
+    "passwordSaltHex": "202122232425262728292a2b2c2d2e2f",
+    "wrapNonceHex": "303132333435363738393a3b",
+    "archiveMasterKeyHex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f"
+  },
+  "intermediates": {
+    "kekHex": "396a53806e9fc24184cf6c7f1e1d7bdbcc8f1d3387e87187df49a605abc9d905",
+    "wrapAadHex": "4346454e4330303202010100010000000102030405060708090a0b0c0d0e0f1011121301202122232425262728292a2b2c2d2e2f00000001000020000101303132333435363738393a3b",
+    "wrappedArchiveKeyCiphertextHex": "12501f2699554f90d1fe58cc4b135ec6687c560f103cc44fb6ea6a3e68374ee1",
+    "wrappedArchiveKeyTagHex": "5be3683991e6c548d0cd1b1be2c7da18",
+    "archiveAadHex": "4346454e4330303202010100010000000102030405060708090a0b0c0d0e0f1011121301202122232425262728292a2b2c2d2e2f00000001000020000101303132333435363738393a3b12501f2699554f90d1fe58cc4b135ec6687c560f103cc44fb6ea6a3e68374ee15be3683991e6c548d0cd1b1be2c7da18",
+    "keySchedule": {
+      "segment0InfoHex": "436c65617243727970742f4346454e433030322f7365676d656e742d6b65790000000000000000",
+      "segment0KeyHex": "9b361e4397feb37d0192b2a3bb7ff222463d624fa50c24faca7ce309f1834ef4",
+      "segment1InfoHex": "436c65617243727970742f4346454e433030322f7365676d656e742d6b65790000000000000001",
+      "segment1KeyHex": "e6804da6b343917361b882cf7777078bbaa21931553b0862bb4bfe33b9a067db",
+      "finalInfoHex": "436c65617243727970742f4346454e433030322f66696e616c2d6b6579",
+      "finalKeyHex": "82fec87cb747e6e48dacd4437f76d4f27fb70dd96d756e853c8ef167e7431758"
+    },
+    "segmentTransition": {
+      "recordsPerSegment": "16384",
+      "before": {
+        "recordNumber": "16383",
+        "segmentNumber": "0",
+        "localRecordNumber": "16383",
+        "nonceHex": "101112130000000000003fff"
+      },
+      "after": {
+        "recordNumber": "16384",
+        "segmentNumber": "1",
+        "localRecordNumber": "0",
+        "nonceHex": "101112130000000000000000"
+      }
+    }
+  },
+  "records": [],
+  "final": {
+    "archiveOffset": 122,
+    "headerHex": "0200000000000000000000000000000000",
+    "dataRecordCount": "0",
+    "totalPlaintextLength": "0",
+    "nonceHex": "101112130000000000000000",
+    "tagHex": "e30e970ccaa55903c3d11bc78d4ade51"
+  },
+  "archiveLength": 155,
+  "archiveSha256Hex": "3ce08335fe9d4a4a2001225a607378ede0916acf12ebace5681a8601d5bd470c",
+  "archiveBase64": "Q0ZFTkMwMDICAQEAAQAAAAECAwQFBgcICQoLDA0ODxAREhMBICEiIyQlJicoKSorLC0uLwAAAAEAACAAAQEwMTIzNDU2Nzg5OjsSUB8mmVVPkNH+WMxLE17GaHxWDxA8xE+26mo+aDdO4VvjaDmR5sVI0M0bG+LH2hgCAAAAAAAAAAAAAAAAAAAAAOMOlwzKpVkDw9Ebx41K3lE="
+}

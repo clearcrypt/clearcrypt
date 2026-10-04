@@ -1,0 +1,85 @@
+{
+  "schema": "clearcrypt-cfenc002-test-vector-v1",
+  "name": "unicode-password-binary-plaintext",
+  "format": "CFENC002",
+  "password": {
+    "value": "  Café🔐 é  ",
+    "utf8Hex": "2020436166c3a9f09f94902065cc812020"
+  },
+  "plaintext": {
+    "encoding": "hex",
+    "valueHex": "00010203feff436c6561724372797074204346454e4330303200807fff",
+    "length": 29,
+    "sha256Hex": "dba9d62f3b42f5881a8d6588c56153646d2b78f8aeee6578b831870d6fa5c4ac"
+  },
+  "kdf": {
+    "algorithm": "argon2id",
+    "version": 19,
+    "outputLengthBytes": 32,
+    "timeCost": 1,
+    "memoryCostKiB": 8192,
+    "parallelism": 1
+  },
+  "inputs": {
+    "archiveIdHex": "606162636465666768696a6b6c6d6e6f",
+    "contentNoncePrefixHex": "70717273",
+    "passwordSaltHex": "808182838485868788898a8b8c8d8e8f",
+    "wrapNonceHex": "909192939495969798999a9b",
+    "archiveMasterKeyHex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+  },
+  "intermediates": {
+    "kekHex": "925ba962ec6f7530fd2af1b18eabe23a59f3c502e67fc185e24f677630584875",
+    "wrapAadHex": "4346454e4330303202010100010000606162636465666768696a6b6c6d6e6f7071727301808182838485868788898a8b8c8d8e8f00000001000020000101909192939495969798999a9b",
+    "wrappedArchiveKeyCiphertextHex": "8fe17643d1a15df14d0384913b4ce05da06e6277ef26206f55fa2e3b5f162061",
+    "wrappedArchiveKeyTagHex": "991f036222169c722d8e122a95f4fdfd",
+    "archiveAadHex": "4346454e4330303202010100010000606162636465666768696a6b6c6d6e6f7071727301808182838485868788898a8b8c8d8e8f00000001000020000101909192939495969798999a9b8fe17643d1a15df14d0384913b4ce05da06e6277ef26206f55fa2e3b5f162061991f036222169c722d8e122a95f4fdfd",
+    "keySchedule": {
+      "segment0InfoHex": "436c65617243727970742f4346454e433030322f7365676d656e742d6b65790000000000000000",
+      "segment0KeyHex": "bd2cc13f8b3b79f747b87b4ac6332fc7149edd82c8c1a72782716845f3c9ce80",
+      "segment1InfoHex": "436c65617243727970742f4346454e433030322f7365676d656e742d6b65790000000000000001",
+      "segment1KeyHex": "ca4260387d750ec88518ffd61ef2adb0e59ec0feff005ccf3d664a1d47d4781f",
+      "finalInfoHex": "436c65617243727970742f4346454e433030322f66696e616c2d6b6579",
+      "finalKeyHex": "e58ca1b34ccf6970d9e3880546afa5b6282d80854b457d14b9653b5ef99a5ffb"
+    },
+    "segmentTransition": {
+      "recordsPerSegment": "16384",
+      "before": {
+        "recordNumber": "16383",
+        "segmentNumber": "0",
+        "localRecordNumber": "16383",
+        "nonceHex": "707172730000000000003fff"
+      },
+      "after": {
+        "recordNumber": "16384",
+        "segmentNumber": "1",
+        "localRecordNumber": "0",
+        "nonceHex": "707172730000000000000000"
+      }
+    }
+  },
+  "records": [
+    {
+      "recordNumber": "0",
+      "archiveOffset": 122,
+      "plaintextLength": 29,
+      "plaintextSha256Hex": "dba9d62f3b42f5881a8d6588c56153646d2b78f8aeee6578b831870d6fa5c4ac",
+      "headerHex": "0100000000000000000000001d",
+      "segmentNumber": "0",
+      "localRecordNumber": "0",
+      "nonceHex": "707172730000000000000000",
+      "ciphertextSha256Hex": "02ca3dad70c53496320d82de600672a6b6257ca7a7e21a9894d7fc3b0fb0221c",
+      "tagHex": "9b730ad06c5eb8320c4478de77a65d6a"
+    }
+  ],
+  "final": {
+    "archiveOffset": 180,
+    "headerHex": "020000000000000001000000000000001d",
+    "dataRecordCount": "1",
+    "totalPlaintextLength": "29",
+    "nonceHex": "707172730000000000000000",
+    "tagHex": "27d1b17fe29d694161c12bdb0bcd7083"
+  },
+  "archiveLength": 213,
+  "archiveSha256Hex": "d631040909e1b3ec428a07fe510950cbe158720a4eb7bcab6d1135cbf1f59d0d",
+  "archiveBase64": "Q0ZFTkMwMDICAQEAAQAAYGFiY2RlZmdoaWprbG1ub3BxcnMBgIGCg4SFhoeIiYqLjI2OjwAAAAEAACAAAQGQkZKTlJWWl5iZmpuP4XZD0aFd8U0DhJE7TOBdoG5id+8mIG9V+i47XxYgYZkfA2IiFpxyLY4SKpX0/f0BAAAAAAAAAAAAAAAd27DvF8IpOtRY3QjGDL5g0yoUUNZBvRpEb3zoFZWbcwrQbF64MgxEeN53pl1qAgAAAAAAAAABAAAAAAAAAB0n0bF/4p1pQWHBK9sLzXCD"
+}

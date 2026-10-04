@@ -387,6 +387,37 @@ The V2-003 internal review accepted:
 
 See [the complete internal review](crypto-review-v2.md). An independent external review and a check against the final NIST SP 800-38D revision remain release gates. Any later amendment that changes serialized bytes requires new vectors and a format review.
 
+## Normative test vectors
+
+The versioned JSON vectors under [`test/vectors/v2`](../test/vectors/v2) are
+normative examples of this provisional format:
+
+| Vector | Plaintext coverage | DATA records |
+| --- | --- | ---: |
+| `empty.json` | empty plaintext and FINAL-only archive | 0 |
+| `unicode-binary.json` | exact Unicode password bytes and binary plaintext | 1 short |
+| `multiple-blocks.json` | two full 64 KiB blocks and one 17-byte final block | 3 |
+
+Every vector publishes its deterministic random inputs, Argon2id KEK,
+`wrapAad`, complete `archiveAad`, DATA headers, record nonces and tags, FINAL
+header and tag, complete archive, and SHA-256 digests. The key-schedule section
+also gives raw HKDF-SHA-256 outputs for segment 0, segment 1, and FINAL. Its
+transition example shows record 16,383 at the end of segment 0 and record 16,384
+at the beginning of segment 1 without requiring a 1 GiB fixture.
+
+Run the primitive-only verifier with:
+
+```bash
+npm run test:vector:v2
+```
+
+The verifier in [`scripts/verify-v2-vectors.mjs`](../scripts/verify-v2-vectors.mjs)
+does not import ClearCrypt's V2 codecs, reader, writer, encryption pipeline, or
+decryption pipeline. It serializes the format directly from this specification,
+reproduces every expected archive, parses and decrypts it independently, and
+requires an authenticated FINAL followed by end-of-file. Chromium, Firefox,
+and WebKit decrypt the same JSON archives in the Playwright suite.
+
 ## References
 
 - [NIST SP 800-38D, Galois/Counter Mode](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf): authenticated encryption, 96-bit IV recommendation, uniqueness requirements and deterministic IV construction.

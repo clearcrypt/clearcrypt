@@ -26,10 +26,14 @@ const allowedFiles = new Map([
   ["/", resolve(root, "test/browser/harness.html")],
   ["/harness.js", resolve(outputDirectory, "harness.js")],
   ["/crypto.worker.js", resolve(outputDirectory, "crypto.worker.js")],
+  ["/vectors/v2/empty.json", resolve(root, "test/vectors/v2/empty.json")],
+  ["/vectors/v2/unicode-binary.json", resolve(root, "test/vectors/v2/unicode-binary.json")],
+  ["/vectors/v2/multiple-blocks.json", resolve(root, "test/vectors/v2/multiple-blocks.json")],
 ]);
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
 };
 
 const server = createServer((request, response) => {

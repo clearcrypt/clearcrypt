@@ -54,6 +54,8 @@ jobs:
       - name: Verify the independent V1 vector
         run: npm run test:vector:v1
 
+      - name: Verify the independent V2 vectors
+        run: npm run test:vector:v2
 
       - name: Verify the browser bundle
         run: npm run check:browser-bundle

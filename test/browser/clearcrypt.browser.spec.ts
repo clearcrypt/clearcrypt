@@ -65,6 +65,20 @@ test("streams a V2 round-trip in a Web Worker while the page stays responsive", 
   expect(probe.value.plaintext.maxActiveWrites).toBe(1);
 });
 
+test("decrypts the normative CFENC002 vectors in the browser", async ({ page }) => {
+  const results = await page.evaluate(() => window.clearcryptTest.verifyV2Vectors());
+
+  expect(results.map(({ name }) => name)).toEqual([
+    "empty-plaintext",
+    "unicode-password-binary-plaintext",
+    "multiple-blocks-final-short",
+  ]);
+  for (const result of results) {
+    expect(result.plaintextLength).toBe(result.expectedLength);
+    expect(result.checksum).toBe(result.expectedChecksum);
+  }
+});
+
 test("keeps browser V2 stream buffers bounded as simulated input grows", async ({
   page,
 }) => {
@@ -225,6 +239,7 @@ declare global {
         totalBytes: number,
         password: string
       ): Promise<ResponsiveWorkerResult<V2BoundedProbe>>;
+      verifyV2Vectors(): Promise<V2BrowserVectorResult[]>;
       concurrentRoundTrips(
         payloads: number[][],
         password: string
@@ -288,4 +303,12 @@ type V2CancellationResult = {
     destination: DestinationMetrics;
   };
   closing: boolean;
+};
+
+type V2BrowserVectorResult = {
+  name: string;
+  plaintextLength: number;
+  checksum: number;
+  expectedLength: number;
+  expectedChecksum: number;
 };

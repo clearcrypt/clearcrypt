@@ -19,6 +19,9 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Validate V2 streaming inside Web Workers on Chromium, Firefox, and WebKit,
   including UI responsiveness, bounded backpressure, cooperative cancellation,
   and Worker closure.
+- Publish normative `CFENC002` vectors for empty, Unicode/binary, multi-block,
+  segment-transition, and FINAL cases with an independent primitive-only
+  verifier shared by Node.js and browser tests.
 
 ## [1.1.0] - 2026-07-25
 
