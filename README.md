@@ -259,6 +259,21 @@ npm run test:browser
 
 Use `npm run test:browser -- --project=chromium` to run one engine.
 
+## V2 performance benchmarks
+
+The reproducible Node.js benchmark separates Argon2id, raw file I/O, the V2
+pipeline with an instrumented destination, and file-to-file processing. It
+compares 1, 4, and 8 MiB records and reports duration, throughput, RSS, and
+`arrayBuffers` memory:
+
+```bash
+npm run build
+npm run benchmark:v2
+```
+
+See [the V2 benchmark protocol](docs/benchmarks-v2.md) before comparing runs or
+using larger input sizes.
+
 ## Property tests and parser fuzzing
 
 The regular Vitest suite includes deterministic `fast-check` properties for

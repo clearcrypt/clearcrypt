@@ -26,6 +26,9 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   every small-vector truncation, arbitrary stream splits, structural record
   mutations, hostile lengths, bounded allocation, and a regression corpus with
   stable error codes.
+- Add a reproducible Node.js V2 benchmark that separates Argon2id, raw file
+  I/O, instrumented streaming, and file-to-file encryption and decryption for
+  1, 4, and 8 MiB records, including throughput and memory observations.
 
 ## [1.1.0] - 2026-07-25
 

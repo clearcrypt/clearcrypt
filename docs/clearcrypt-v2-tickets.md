@@ -434,6 +434,13 @@ Tester systématiquement le parseur et les garanties du format face aux archives
 
 ### V2-016 — Créer les benchmarks mémoire et débit
 
+**Statut : terminé le 4 octobre 2026.** Le runner Node.js exécute Argon2id, les
+entrées/sorties brutes, le pipeline avec destination instrumentée et le parcours
+fichier vers fichier dans des processus isolés. Il compare les blocs de 1, 4 et
+8 Mio et publie durées, débits, RSS, mémoire des `ArrayBuffer`, versions et
+configuration matérielle dans un rapport JSON reproductible. Le protocole est
+décrit dans [benchmarks-v2.md](benchmarks-v2.md).
+
 **Objectif**
 
 Mesurer le cœur v2 sans confondre cryptographie, lecture, écriture et KDF.
