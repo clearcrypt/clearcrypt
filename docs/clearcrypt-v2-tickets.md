@@ -73,6 +73,8 @@ Définir ce que garantit la première version de `CFENC002` et ce qu'elle ne pre
 
 ### V2-002 — Rédiger la spécification binaire provisoire `CFENC002`
 
+**Statut : brouillon terminé le 4 octobre 2026.** Framing consigné dans [ClearCrypt encrypted archive format V2](format-v2.md). La construction et les limites cryptographiques restent soumises à V2-003 avant implémentation.
+
 **Objectif**
 
 Décrire chaque octet du nouveau format avant d'implémenter le parseur ou le chiffrement.
