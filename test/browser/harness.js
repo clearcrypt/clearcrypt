@@ -178,6 +178,14 @@ window.clearcryptTest = {
     });
   },
 
+  workerV2PipedRoundTrip(totalBytes, password) {
+    return requestResponsiveWorker({
+      action: "v2PipedRoundTrip",
+      totalBytes,
+      password,
+    });
+  },
+
   async verifyV2Vectors() {
     const paths = [
       "/vectors/v2/empty.json",

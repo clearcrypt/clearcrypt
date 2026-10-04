@@ -274,6 +274,17 @@ npm run benchmark:v2
 See [the V2 benchmark protocol](docs/benchmarks-v2.md) before comparing runs or
 using larger input sizes.
 
+The recorded large-volume qualification covers 1, 10, and 100 GiB with real
+archive files, plus a supplementary 100 GiB bounded-pipe run. A separate opt-in
+Web Worker campaign runs on Chromium, Firefox, and WebKit:
+
+```bash
+npm run qualify:node:v2
+npm run qualify:browser:v2 -- --size-mib 64
+```
+
+See [the recorded V2 qualification and its limits](docs/qualification-v2.md).
+
 ## Property tests and parser fuzzing
 
 The regular Vitest suite includes deterministic `fast-check` properties for

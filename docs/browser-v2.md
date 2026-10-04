@@ -99,4 +99,5 @@ vérifie :
 
 Cette validation démontre le comportement borné du pipeline et de l'adaptateur
 de test. Les mesures de mémoire et de débit sur de grands fichiers et appareils
-réels relèvent de V2-016 et V2-017.
+réels relèvent de V2-016 et V2-017. La campagne opt-in V2-017 ajoute un round
+trip de 64 Mio dans chaque moteur ; voir [qualification-v2.md](qualification-v2.md).

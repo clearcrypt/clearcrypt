@@ -1,0 +1,107 @@
+{
+  "schema": "clearcrypt-cfenc002-node-qualification-v1",
+  "createdAt": "2026-10-04T15:00:01.130Z",
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "linux 5.15.167.4-microsoft-standard-WSL2",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-11600K @ 3.90GHz",
+    "logicalCpus": 12,
+    "totalMemoryMiB": 15945.17,
+    "qualificationDirectory": "/work/.clearcrypt-v2-qualification",
+    "freeDiskGiBAtStart": 128.96
+  },
+  "protocol": {
+    "sizesGiB": [1, 10, 100],
+    "fileUpToGiB": 10,
+    "reserveGiB": 16,
+    "chunkSizeMiB": 4,
+    "sourcePieceKiB": 256,
+    "kdf": {
+      "timeCost": 2,
+      "memoryCostKiB": 65536,
+      "parallelism": 2
+    },
+    "note": "1, 10 and 100 GiB used real archive files. A supplementary 100 GiB bounded-pipe run was also completed."
+  },
+  "failurePaths": {
+    "cancellation": {
+      "publicCode": "ABORTED",
+      "sourceCancelled": true,
+      "destinationAborted": true
+    },
+    "noSpace": {
+      "simulatedCode": "ENOSPC",
+      "publicCode": "INTERNAL",
+      "sourceCancelled": true
+    },
+    "writeError": {
+      "simulatedCode": "EIO",
+      "publicCode": "INTERNAL",
+      "sourceCancelled": true
+    }
+  },
+  "results": [
+    {
+      "sizeGiB": 1,
+      "mode": "archive-file",
+      "archiveBytes": 1073749403,
+      "plaintextSha256": "51131f0abec2aa5130aa7bef4fc8ba268ed4557a4ca28ff7b99a9340999b888a",
+      "verified": true,
+      "encryption": {
+        "durationMs": 6384.97,
+        "throughputMiBPerSecond": 160.38,
+        "peakMiB": { "rss": 206.52, "arrayBuffers": 4.56 }
+      },
+      "decryption": {
+        "durationMs": 6167.05,
+        "throughputMiBPerSecond": 166.04,
+        "peakMiB": { "rss": 214, "arrayBuffers": 59.55 }
+      }
+    },
+    {
+      "sizeGiB": 10,
+      "mode": "archive-file",
+      "archiveBytes": 10737492635,
+      "plaintextSha256": "20765a96c2ac524f0ed010bdb054aaafb698ce7043a76727be3f79feab058ec3",
+      "verified": true,
+      "encryption": {
+        "durationMs": 75291.57,
+        "throughputMiBPerSecond": 136,
+        "peakMiB": { "rss": 211.79, "arrayBuffers": 4.56 }
+      },
+      "decryption": {
+        "durationMs": 53821.66,
+        "throughputMiBPerSecond": 190.26,
+        "peakMiB": { "rss": 216.09, "arrayBuffers": 59.8 }
+      }
+    },
+    {
+      "sizeGiB": 100,
+      "mode": "archive-file",
+      "archiveBytes": 107374924955,
+      "plaintextSha256": "840a4032d2c4db1b2084aeacddbab1d70b1b97937ac7a45ecc7f9f1cbcd07d0d",
+      "verified": true,
+      "encryption": {
+        "durationMs": 628678.8,
+        "throughputMiBPerSecond": 162.88,
+        "peakMiB": { "rss": 214.41, "arrayBuffers": 4.56 }
+      },
+      "decryption": {
+        "durationMs": 621646.1,
+        "throughputMiBPerSecond": 164.72,
+        "peakMiB": { "rss": 220.41, "arrayBuffers": 60.05 }
+      }
+    }
+  ],
+  "supplementaryResults": [
+    {
+      "sizeGiB": 100,
+      "mode": "bounded-pipe",
+      "plaintextSha256": "840a4032d2c4db1b2084aeacddbab1d70b1b97937ac7a45ecc7f9f1cbcd07d0d",
+      "verified": true,
+      "durationMs": 278405.23,
+      "endToEndThroughputMiBPerSecond": 367.81,
+      "peakMiB": { "rss": 254.16, "arrayBuffers": 41.2 }
+    }
+  ]
+}

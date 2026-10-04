@@ -6,6 +6,7 @@ import {
 } from "../../dist/browser.js";
 
 const V2_CHUNK_SIZE = 64 * 1024;
+const V2_QUALIFICATION_CHUNK_SIZE = 4 * 1024 * 1024;
 const V2_KDF = { timeCost: 1, memoryCostKiB: 8 * 1024, parallelism: 1 };
 const V2_RESOURCE_POLICY = {
   maxMemoryCostKiB: 8 * 1024,
@@ -177,6 +178,53 @@ async function v2BoundedProbe(totalBytes, password) {
   };
 }
 
+async function v2PipedRoundTrip(totalBytes, password) {
+  const source = createGeneratedSource(totalBytes);
+  const archivePipe = new TransformStream(
+    undefined,
+    { highWaterMark: 1 },
+    { highWaterMark: 1 }
+  );
+  let decryptedChecksum = 0x811c9dc5;
+  const plaintext = createInstrumentedDestination({
+    onWrite(chunk) {
+      decryptedChecksum = checksumUpdate(decryptedChecksum, chunk);
+    },
+  });
+  const startedAt = performance.now();
+  const decryption = decryptStreamV2(
+    archivePipe.readable,
+    plaintext.stream,
+    password,
+    { resourcePolicy: V2_RESOURCE_POLICY }
+  );
+  const encryption = encryptStreamV2(
+    source.stream,
+    archivePipe.writable,
+    password,
+    { chunkSize: V2_QUALIFICATION_CHUNK_SIZE, kdf: V2_KDF }
+  );
+  const [encrypted, decrypted] = await Promise.all([encryption, decryption]);
+  const durationMs = performance.now() - startedAt;
+  return {
+    durationMs,
+    throughputMiBPerSecond: totalBytes / (1024 * 1024) / (durationMs / 1000),
+    source: source.metrics(),
+    plaintext: plaintext.metrics(),
+    decryptedChecksum,
+    encryption: {
+      inputBytes: Number(encrypted.inputBytes),
+      outputBytes: Number(encrypted.outputBytes),
+      records: Number(encrypted.records),
+    },
+    decryption: {
+      inputBytes: Number(decrypted.inputBytes),
+      outputBytes: Number(decrypted.outputBytes),
+      records: Number(decrypted.records),
+    },
+  };
+}
+
 let cancelableV2;
 
 async function startCancelableV2(data) {
@@ -239,6 +287,9 @@ self.addEventListener("message", async ({ data }) => {
         break;
       case "v2BoundedProbe":
         value = await v2BoundedProbe(data.totalBytes, data.password);
+        break;
+      case "v2PipedRoundTrip":
+        value = await v2PipedRoundTrip(data.totalBytes, data.password);
         break;
       case "startCancelableV2":
         await startCancelableV2(data);

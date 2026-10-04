@@ -463,6 +463,13 @@ Mesurer le cœur v2 sans confondre cryptographie, lecture, écriture et KDF.
 
 ### V2-017 — Qualifier les fichiers de 1, 10 et 100 Go
 
+**Statut : terminé le 4 octobre 2026.** Les round trips Node.js de 1, 10 et
+100 Gio sur archives réelles ont été validés par SHA-256, ainsi qu'un parcours
+borné supplémentaire de 100 Gio. Le pic RSS reste du même ordre. L'annulation
+et les erreurs d'écriture simulées sont couvertes. Un round trip Web Worker de
+64 Mio passe sous Chromium, Firefox et WebKit. Les résultats et limites desktop
+et mobile sont publiés dans [qualification-v2.md](qualification-v2.md).
+
 **Objectif**
 
 Vérifier que l'implémentation répond au cas d'usage des grandes archives.

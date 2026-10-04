@@ -75,9 +75,11 @@ function memoryMiB(memory) {
 
 function generatedSource(totalBytes) {
   let offset = 0;
-  const fullPiece = new Uint8Array(Math.min(SOURCE_PIECE_BYTES, totalBytes));
+  const pieceLength = Math.min(SOURCE_PIECE_BYTES, totalBytes);
+  const fullPieces = [new Uint8Array(pieceLength), new Uint8Array(pieceLength)];
+  let pieceIndex = 0;
   const tailLength = totalBytes % SOURCE_PIECE_BYTES;
-  const tailPiece = tailLength === 0 ? fullPiece : new Uint8Array(tailLength);
+  const tailPiece = tailLength === 0 ? fullPieces[0] : new Uint8Array(tailLength);
   return new ReadableStream({
     pull(controller) {
       if (offset === totalBytes) {
@@ -85,7 +87,8 @@ function generatedSource(totalBytes) {
         return;
       }
       const length = Math.min(SOURCE_PIECE_BYTES, totalBytes - offset);
-      const chunk = length === fullPiece.length ? fullPiece : tailPiece;
+      const chunk = length === pieceLength ? fullPieces[pieceIndex] : tailPiece;
+      pieceIndex = (pieceIndex + 1) % fullPieces.length;
       chunk.fill(0);
       for (let index = 0; index < length; index += 4096) {
         chunk[index] = ((offset + index) / 4096) & 0xff;

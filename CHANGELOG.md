@@ -29,6 +29,10 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add a reproducible Node.js V2 benchmark that separates Argon2id, raw file
   I/O, instrumented streaming, and file-to-file encryption and decryption for
   1, 4, and 8 MiB records, including throughput and memory observations.
+- Qualify V2 round trips at 1, 10, and 100 GiB with real archive files, plus a
+  supplementary 100 GiB bounded-pipe run, with streaming SHA-256 verification,
+  memory metrics, cancellation and write-failure probes, and a 64 MiB Web
+  Worker campaign on Chromium, Firefox, and WebKit.
 
 ## [1.1.0] - 2026-07-25
 

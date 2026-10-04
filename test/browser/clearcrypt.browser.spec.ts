@@ -4,6 +4,9 @@ import { decryptBytesV1, encryptBytesV1 } from "../../dist/index.js";
 
 const password = "correct horse battery staple 🔐";
 const plaintext = [0, 1, 2, 127, 128, 254, 255, 42];
+const browserQualificationMiB = Number(
+  process.env.CLEARCRYPT_BROWSER_QUALIFICATION_MIB ?? 0
+);
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -113,6 +116,29 @@ test("keeps browser V2 stream buffers bounded as simulated input grows", async (
   expect(large.value.destination.maxWriteBytes).toBe(
     small.value.destination.maxWriteBytes
   );
+});
+
+test("qualifies a configured V2 size in a Web Worker", async ({ page }) => {
+  test.skip(
+    !Number.isSafeInteger(browserQualificationMiB) || browserQualificationMiB <= 0,
+    "Set CLEARCRYPT_BROWSER_QUALIFICATION_MIB to run the browser qualification"
+  );
+  test.setTimeout(5 * 60 * 1000);
+  const totalBytes = browserQualificationMiB * 1024 * 1024;
+  const probe = await page.evaluate(
+    ({ totalBytes, password }) =>
+      window.clearcryptTest.workerV2PipedRoundTrip(totalBytes, password),
+    { totalBytes, password }
+  );
+
+  expect(probe.mainThreadTicks).toBeGreaterThan(0);
+  expect(probe.value.encryption.inputBytes).toBe(totalBytes);
+  expect(probe.value.decryption.outputBytes).toBe(totalBytes);
+  expect(probe.value.plaintext.bytes).toBe(totalBytes);
+  expect(probe.value.source.checksum).toBe(probe.value.decryptedChecksum);
+  expect(probe.value.source.maxChunkBytes).toBeLessThanOrEqual(64 * 1024);
+  expect(probe.value.plaintext.maxWriteBytes).toBeLessThanOrEqual(4 * 1024 * 1024);
+  expect(probe.value.plaintext.maxActiveWrites).toBe(1);
 });
 
 test("serializes concurrent Argon2 calls without corrupting results", async ({
@@ -239,6 +265,10 @@ declare global {
         totalBytes: number,
         password: string
       ): Promise<ResponsiveWorkerResult<V2BoundedProbe>>;
+      workerV2PipedRoundTrip(
+        totalBytes: number,
+        password: string
+      ): Promise<ResponsiveWorkerResult<V2PipedRoundTripProbe>>;
       verifyV2Vectors(): Promise<V2BrowserVectorResult[]>;
       concurrentRoundTrips(
         payloads: number[][],
@@ -293,6 +323,16 @@ type V2BoundedProbe = {
   destination: DestinationMetrics;
   progressEvents: number;
   result: OperationMetrics;
+};
+
+type V2PipedRoundTripProbe = {
+  durationMs: number;
+  throughputMiBPerSecond: number;
+  source: SourceMetrics;
+  plaintext: DestinationMetrics;
+  decryptedChecksum: number;
+  encryption: OperationMetrics;
+  decryption: OperationMetrics;
 };
 
 type V2CancellationResult = {
