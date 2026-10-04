@@ -243,6 +243,8 @@ Authentifier un bloc avant de remettre son plaintext au consommateur.
 
 ### V2-009 — Construire le pipeline de chiffrement v2
 
+**Statut : terminé le 4 octobre 2026.** Pipeline de chiffrement séquentiel ajouté dans `src/v2/encrypt-stream.ts`, avec enveloppement de l'AMK, cache d'une seule clé de segment, buffer de plaintext borné, authentification de `FINAL` et contre-pression de bout en bout.
+
 **Objectif**
 
 Lire, regrouper, chiffrer et écrire un flux complet avec une mémoire bornée.

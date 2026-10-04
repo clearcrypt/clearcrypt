@@ -170,8 +170,9 @@ export async function encryptDataRecordV2(params: {
   archiveMasterKey: Uint8Array;
   recordNumber: bigint;
   plaintext: Uint8Array;
+  segmentKey?: CryptoKey;
 }): Promise<V2EncryptedDataRecord> {
-  const { archiveAad, archiveMasterKey, recordNumber, plaintext } = params;
+  const { archiveAad, archiveMasterKey, recordNumber, plaintext, segmentKey } = params;
   if (!(archiveAad instanceof Uint8Array)) {
     throw new InvalidParamsError("V2 archive AAD must be a Uint8Array");
   }
@@ -192,11 +193,13 @@ export async function encryptDataRecordV2(params: {
     position.localRecordNumber
   );
   const aad = buildDataAadV2(archiveAad, headerBytes);
-  const key = await deriveSegmentKeyV2({
-    archiveMasterKey,
-    archiveId: archiveHeader.archiveId,
-    segmentNumber: position.segmentNumber,
-  });
+  const key =
+    segmentKey ??
+    (await deriveSegmentKeyV2({
+      archiveMasterKey,
+      archiveId: archiveHeader.archiveId,
+      segmentNumber: position.segmentNumber,
+    }));
   const { ciphertext, tag } = await aeadEncryptAes256Gcm({
     key,
     nonce,
