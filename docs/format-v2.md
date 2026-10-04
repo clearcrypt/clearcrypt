@@ -1,6 +1,6 @@
 # ClearCrypt encrypted archive format V2 (`CFENC002`)
 
-Status: provisional binary specification produced by V2-002. The cryptographic construction, invocation budget and maximum archive size must pass V2-003 before implementation or production use.
+Status: provisional binary specification produced by V2-002 and amended by the V2-003 internal cryptographic review. Approved for implementation within the limits below; independent external review remains required before production-stable publication.
 
 This document defines the byte-level framing proposed for streaming ClearCrypt archives. `CFENC002` is distinct from `CFENC001`; a V1 reader must reject it and a V2 reader must not reinterpret a V1 archive.
 
@@ -24,39 +24,40 @@ The framing must detect alteration, removal, duplication, reordering, cross-arch
 ## Complete archive layout
 
 ```text
-fixed header, 121 bytes
+fixed header, 122 bytes
 zero or more DATA records
 exactly one FINAL record, 33 bytes
 end of archive
 ```
 
-The minimum structurally valid archive is 154 bytes: a 121-byte header followed by the 33-byte final record for an empty plaintext.
+The minimum structurally valid archive is 155 bytes: a 122-byte header followed by the 33-byte final record for an empty plaintext.
 
 No padding, trailer or extension bytes are allowed after `FINAL` in format version 2.
 
 ## Fixed header
 
-The V2 header is exactly 121 bytes.
+The V2 header is exactly 122 bytes.
 
 | Offset | Size | Encoding | Field | V2 value or meaning |
 | ---: | ---: | --- | --- | --- |
 | 0 | 8 | bytes | magic | ASCII `CFENC002`, hex `4346454e43303032` |
 | 8 | 1 | `u8` | version | `0x02` |
 | 9 | 1 | `u8` | content cipher ID | `0x01` = AES-256-GCM by records |
-| 10 | 4 | `u32be` | chunk size | maximum plaintext bytes in one DATA record |
-| 14 | 16 | bytes | archive ID | random identifier for this archive |
-| 30 | 4 | bytes | content nonce prefix | fixed 32-bit field for content nonces |
-| 34 | 1 | `u8` | KDF ID | `0x01` = Argon2id |
-| 35 | 16 | bytes | salt | Argon2id salt |
-| 51 | 4 | `u32be` | time cost | Argon2id iteration count |
-| 55 | 4 | `u32be` | memory cost | Argon2id memory in KiB |
-| 59 | 1 | `u8` | parallelism | Argon2id lanes |
-| 60 | 1 | `u8` | DEK-wrap cipher ID | `0x01` = AES-256-GCM |
-| 61 | 12 | bytes | wrap nonce | nonce used to wrap the DEK |
-| 73 | 32 | bytes | wrapped DEK ciphertext | encrypted 32-byte DEK |
-| 105 | 16 | bytes | wrapped DEK tag | 128-bit AES-GCM tag |
+| 10 | 1 | `u8` | content key schedule ID | `0x01` = HKDF-SHA-256 segmented keys |
+| 11 | 4 | `u32be` | chunk size | maximum plaintext bytes in one DATA record |
+| 15 | 16 | bytes | archive ID | random identifier and HKDF salt for this archive |
+| 31 | 4 | bytes | content nonce prefix | fixed 32-bit field for content nonces |
+| 35 | 1 | `u8` | password KDF ID | `0x01` = Argon2id |
+| 36 | 16 | bytes | password salt | Argon2id salt |
+| 52 | 4 | `u32be` | time cost | Argon2id iteration count |
+| 56 | 4 | `u32be` | memory cost | Argon2id memory in KiB |
+| 60 | 1 | `u8` | parallelism | Argon2id lanes |
+| 61 | 1 | `u8` | archive-key wrap cipher ID | `0x01` = AES-256-GCM |
+| 62 | 12 | bytes | wrap nonce | nonce used to wrap the archive master key |
+| 74 | 32 | bytes | wrapped archive-key ciphertext | encrypted 32-byte archive master key |
+| 106 | 16 | bytes | wrapped archive-key tag | 128-bit AES-GCM tag |
 
-The exact byte range `[0, 73)` is called `wrapAad`. The exact byte range `[0, 121)` is called `archiveAad`.
+The exact byte range `[0, 74)` is called `wrapAad`. The exact byte range `[0, 122)` is called `archiveAad`.
 
 V2 has a fixed header and no extension-length field. A future incompatible header requires another format version. This keeps the first streaming parser small and prevents ambiguous extension handling.
 
@@ -65,8 +66,9 @@ V2 has a fixed header and no extension-length field. A future incompatible heade
 | Registry | ID | Algorithm |
 | --- | ---: | --- |
 | content cipher | `0x01` | AES-256-GCM, independent invocation per record, 128-bit tag |
-| KDF | `0x01` | Argon2id version 1.3 (`0x13`, decimal 19) |
-| DEK-wrap cipher | `0x01` | AES-256-GCM, 128-bit tag |
+| content key schedule | `0x01` | HKDF-SHA-256 segmented keys and distinct FINAL key |
+| password KDF | `0x01` | Argon2id version 1.3 (`0x13`, decimal 19) |
+| archive-key wrap cipher | `0x01` | AES-256-GCM, 128-bit tag |
 
 A reader must reject an unknown version or algorithm identifier before deriving a key or decrypting content. It must not guess a replacement algorithm.
 
@@ -80,7 +82,7 @@ The encoded chunk size must:
 
 The default writer value is 4,194,304 bytes (4 MiB). The allowed range includes 1, 4 and 8 MiB for qualification benchmarks while keeping every record allocation bounded.
 
-A reader validates the chunk size immediately after reading the first 14 header bytes and before allocating a DATA-record buffer.
+A reader validates the key schedule and chunk size immediately after reading the first 15 header bytes and before allocating a DATA-record buffer.
 
 ## Password and KEK derivation
 
@@ -101,7 +103,7 @@ Derive a 32-byte key-encryption key (KEK) with Argon2id using the salt and cost 
 
 The reader must validate the semantic bounds and its local resource policy before running Argon2id. The encoded parameters describe the archive; they do not require a reader to exceed its configured resource policy.
 
-## DEK generation and wrapping
+## Archive master key generation and wrapping
 
 The writer generates these values independently with a cryptographically secure random generator for every new archive:
 
@@ -109,41 +111,88 @@ The writer generates these values independently with a cryptographically secure 
 - 4-byte content nonce prefix;
 - 16-byte Argon2id salt;
 - 12-byte wrapping nonce;
-- 32-byte data-encryption key (DEK).
+- 32-byte archive master key (AMK).
 
-After serializing bytes `[0, 73)`, wrap the DEK as follows:
+The AMK never encrypts a DATA or FINAL record directly. It is input keying material for the segmented content-key schedule.
+
+After serializing bytes `[0, 74)`, wrap the AMK as follows:
 
 ```text
 wrappedCombined = AES-256-GCM-ENCRYPT(
   key       = KEK,
   nonce     = wrapNonce,
-  plaintext = DEK,
-  AAD       = wrapAad,       // exact header bytes [0, 73)
+  plaintext = AMK,
+  AAD       = wrapAad,       // exact header bytes [0, 74)
   tagLength = 16 bytes
 )
 
-wrappedDekCiphertext = wrappedCombined[0, 32)
-wrappedDekTag        = wrappedCombined[32, 48)
-archiveAad           = wrapAad || wrappedDekCiphertext || wrappedDekTag
+wrappedArchiveKeyCiphertext = wrappedCombined[0, 32)
+wrappedArchiveKeyTag        = wrappedCombined[32, 48)
+archiveAad = wrapAad || wrappedArchiveKeyCiphertext || wrappedArchiveKeyTag
 ```
 
-Binding the header prefix to the DEK wrap prevents changing its algorithms, KDF parameters, archive ID, nonce prefix or chunk size while retaining a valid wrapped key.
+Binding the header prefix to the AMK wrap prevents changing its algorithms, key schedule, KDF parameters, archive ID, nonce prefix or chunk size while retaining a valid wrapped key.
 
-The writer must not reuse a DEK for another archive or for another attempt to create the same archive. Restarting an interrupted encryption creates fresh random values and starts a new archive.
+The writer must not reuse an AMK for another archive or another attempt to create the same archive. Restarting an interrupted encryption creates fresh random values and starts a new archive.
+
+## Segmented content-key schedule
+
+The content key schedule uses HKDF-SHA-256 as specified by RFC 5869. The segment size is fixed at 1 GiB (`2^30` plaintext bytes). Every permitted chunk size divides the segment size exactly.
+
+For the chunk size declared in the header:
+
+```text
+recordsPerSegment = 2^30 / chunkSize
+segmentNumber(recordNumber) = floor(recordNumber / recordsPerSegment)
+localRecordNumber(recordNumber) = recordNumber mod recordsPerSegment
+```
+
+Derive one 32-byte AES key per segment:
+
+```text
+segmentKey(segmentNumber) = HKDF-SHA-256(
+  IKM  = AMK,
+  salt = archiveId,
+  info = ASCII("ClearCrypt/CFENC002/segment-key") || u64be(segmentNumber),
+  L    = 32
+)
+```
+
+Derive a distinct 32-byte key for FINAL:
+
+```text
+finalKey = HKDF-SHA-256(
+  IKM  = AMK,
+  salt = archiveId,
+  info = ASCII("ClearCrypt/CFENC002/final-key"),
+  L    = 32
+)
+```
+
+The two exact ASCII labels are protocol constants. Their different values provide domain separation between DATA segment keys and the FINAL key. The segment number provides separation between DATA segment keys.
+
+An implementation derives keys on demand, retains only a bounded number of them and wipes a package-owned segment-key buffer when it is no longer required. Every non-empty archive smaller than 1 GiB uses `segmentKey(0)`; an empty archive derives only `finalKey`. The AMK is never used directly with AES-GCM content records.
 
 ## Content nonce construction
 
-Every DATA or FINAL authentication operation uses a 96-bit nonce:
+Every DATA authentication operation uses a 96-bit nonce:
 
 ```text
-contentNonce(recordNumber) = contentNoncePrefix || u64be(recordNumber)
+dataNonce(recordNumber) =
+  contentNoncePrefix || u64be(localRecordNumber(recordNumber))
 ```
 
-The 32-bit prefix remains fixed for the life of the DEK. The 64-bit record number is the invocation field and must never repeat under that DEK.
+The 32-bit prefix remains fixed for the archive. The 64-bit local record number is the invocation field and must never repeat under the same segment key. It restarts at zero only after the segment key changes.
 
-DATA records use numbers `0` through `dataRecordCount - 1`. FINAL uses `dataRecordCount`, so it receives the next unused nonce. A writer must fail before a counter would overflow or exceed the V2 invocation limit established by V2-003.
+FINAL uses its separately derived key and this nonce:
 
-This construction follows the 96-bit deterministic GCM layout with a 32-bit fixed field and a 64-bit invocation field described by NIST SP 800-38D. V2-003 must still validate the complete per-key invocation and authentication budget before this construction is considered approved.
+```text
+finalNonce = contentNoncePrefix || u64be(0)
+```
+
+Reusing the numeric nonce value for DATA segment 0 and FINAL is safe only because their keys are distinct HKDF outputs. The AAD also carries distinct record types.
+
+This nonce construction follows the 96-bit deterministic GCM layout with a 32-bit fixed field and a 64-bit invocation field described by NIST SP 800-38D. The amended V2-003 internal review accepts it within the normative limits below. Independent external review remains required.
 
 ## DATA record
 
@@ -167,8 +216,8 @@ For the exact 13-byte DATA header `dataRecordHeader`, encrypt as follows:
 
 ```text
 dataCombined = AES-256-GCM-ENCRYPT(
-  key       = DEK,
-  nonce     = contentNonce(recordNumber),
+  key       = segmentKey(segmentNumber(recordNumber)),
+  nonce     = dataNonce(recordNumber),
   plaintext = plaintextChunk,
   AAD       = archiveAad || dataRecordHeader,
   tagLength = 16 bytes
@@ -188,14 +237,14 @@ Every archive contains exactly one FINAL record. It has no ciphertext and authen
 | 9 | 8 | `u64be` | total plaintext length | sum of all DATA plaintext lengths |
 | 17 | 16 | bytes | tag | AES-GCM tag over empty plaintext and the FINAL AAD |
 
-The FINAL record is always 33 bytes. Its record number for nonce construction is `dataRecordCount`.
+The FINAL record is always 33 bytes. It uses the separately derived `finalKey`; its clear data-record count remains the global number of DATA records.
 
 For the exact 17-byte clear FINAL header `finalRecordHeader`, compute:
 
 ```text
 finalCombined = AES-256-GCM-ENCRYPT(
-  key       = DEK,
-  nonce     = contentNonce(dataRecordCount),
+  key       = finalKey,
+  nonce     = finalNonce,
   plaintext = empty byte string,
   AAD       = archiveAad || finalRecordHeader,
   tagLength = 16 bytes
@@ -211,37 +260,37 @@ A reader accepts FINAL only when:
 - its tag succeeds;
 - the source then reaches end-of-stream without another byte.
 
-For an empty plaintext, `dataRecordCount` and `totalPlaintextLength` are zero. FINAL then uses content record number zero. No DATA record is emitted.
+For an empty plaintext, `dataRecordCount` and `totalPlaintextLength` are zero. FINAL uses `finalKey` and `finalNonce`; no DATA record is emitted.
 
 ## Writer procedure
 
 1. Validate the password, KDF options and chunk size.
-2. Generate the archive ID, nonce prefix, salt, wrapping nonce and DEK independently.
+2. Generate the archive ID, nonce prefix, salt, wrapping nonce and AMK independently.
 3. Serialize `wrapAad`.
 4. Derive the KEK once with Argon2id.
-5. Wrap the DEK using `wrapAad` and serialize the complete 121-byte header.
+5. Wrap the AMK using `wrapAad` and serialize the complete 122-byte header.
 6. Read the source progressively, filling at most one bounded plaintext chunk plus bounded pipeline buffers.
-7. For each non-empty chunk, serialize its DATA header, encrypt it with the next content nonce and write the complete record under destination backpressure.
+7. Derive the current segment key on demand. For each non-empty chunk, serialize its DATA header, encrypt it with the derived segment key and local record nonce, then write the complete record under destination backpressure.
 8. Maintain checked `bigint` totals for the DATA count and plaintext length.
-9. Serialize and authenticate FINAL with the next unused content nonce.
+9. Derive `finalKey`, then serialize and authenticate FINAL with `finalNonce`.
 10. Write FINAL and close the destination.
-11. Wipe package-owned KEK, DEK and plaintext temporary buffers on every exit path where possible.
+11. Wipe package-owned KEK, AMK, derived keys and plaintext temporary buffers on every exit path where possible.
 
 The writer must not emit a short DATA record until it has observed source end-of-stream. It must not prefetch an unbounded number of chunks.
 
 ## Reader procedure
 
-1. Read exactly 121 header bytes incrementally.
+1. Read exactly 122 header bytes incrementally.
 2. Check magic, version and algorithm identifiers.
-3. Validate the chunk size and KDF semantic bounds.
+3. Validate the content key schedule, chunk size and KDF semantic bounds.
 4. Apply the local resource policy before Argon2id.
-5. Derive the KEK once and authenticate the wrapped DEK with exact `wrapAad`.
+5. Derive the KEK once and authenticate the wrapped AMK with exact `wrapAad`.
 6. Initialize expected record number and checked total plaintext length to zero.
 7. Read one record type byte.
 8. For DATA, read the remaining 12 header bytes, validate the exact expected index and length, then read only that ciphertext and its 16-byte tag.
-9. Authenticate the complete DATA record before writing its plaintext to the destination.
+9. Derive the expected segment key from the global record number and authenticate the complete DATA record before writing its plaintext to the destination.
 10. Reject another DATA record after a short DATA record.
-11. For FINAL, read its remaining 32 bytes, validate its clear totals, authenticate its tag and require immediate end-of-stream.
+11. For FINAL, read its remaining 32 bytes, validate its clear totals, derive `finalKey`, authenticate its tag and require immediate end-of-stream.
 12. Return success only after FINAL and destination finalization succeed.
 
 If the source ends before FINAL, the reader reports an invalid truncated archive even when every preceding DATA tag was valid.
@@ -250,31 +299,42 @@ If the source ends before FINAL, the reader reports an invalid truncated archive
 
 | Quantity | Structural encoding | V2 parsing rule |
 | --- | --- | --- |
-| header | fixed 121 bytes | exactly 121 bytes |
+| header | fixed 122 bytes | exactly 122 bytes |
 | DATA plaintext | `u32be` | 1 through validated chunk size |
 | DATA encoded size | derived | at most 16 MiB + 29 bytes |
 | data-record count | `u64be` | sequential, no repetition or overflow |
 | total plaintext length | `u64be` | checked sum, no overflow |
 | FINAL | fixed 33 bytes | exactly one, then EOF |
 
-The binary representation can express up to `2^64 - 1` plaintext bytes and record numbers. These are structural capacities, not approved cryptographic or product limits.
+The binary representation can express up to `2^64 - 1` plaintext bytes and record numbers. These are structural capacities, not permission to process that amount of data.
 
-V2-003 must define a smaller normative maximum for content invocations and archive size. Writers will enforce that limit while producing data. Readers will reject a record number or cumulative length beyond it before performing the corresponding AES-GCM operation or destination write.
+V2 uses a 1 GiB per-key segment limit and these global normative limits:
 
-The target of approximately 100 Go requires about 23,842 DATA records with the default 4 MiB chunk size, plus FINAL. It is far below the structural counters, but still participates in the aggregate per-key security analysis required by V2-003.
+| Limit | Value |
+| --- | ---: |
+| segment plaintext size | `2^30` bytes = 1 GiB |
+| maximum DATA invocations per segment key | `2^14` = 16,384, reached with 64 KiB chunks |
+| maximum plaintext length | `2^50` bytes = 1 PiB |
+| maximum segments | `2^20` = 1,048,576 |
+| maximum DATA records | `2^34`, reached with 64 KiB chunks |
+| FINAL-key invocations | exactly one |
+
+With the default 4 MiB chunk size, each full segment contains 256 DATA records. An archive of 100 GB decimal uses 94 segment keys; 100 GiB uses exactly 100. The 1 PiB global limit is a finite protocol and implementation bound, not a recommended routine archive size or a storage guarantee.
+
+Writers enforce both byte and record limits before the corresponding AES-GCM call. Readers reject a record number or cumulative length beyond either limit before decrypting or writing that record.
 
 ## Overhead
 
 For plaintext length `P > 0`, chunk size `S`, and `n = ceil(P / S)` DATA records:
 
 ```text
-archiveLength = P + 121 + (29 × n) + 33
-              = P + 154 + (29 × n)
+archiveLength = P + 122 + (29 × n) + 33
+              = P + 155 + (29 × n)
 ```
 
-For an empty plaintext, the archive is 154 bytes.
+For an empty plaintext, the archive is 155 bytes.
 
-At the default 4 MiB chunk size, DATA framing adds 29 bytes per chunk, approximately 0.00069%, plus the fixed 154 bytes. This calculation excludes storage-layer framing outside ClearCrypt.
+At the default 4 MiB chunk size, DATA framing adds 29 bytes per chunk, approximately 0.00069%, plus the fixed 155 bytes. Segment transitions add no archive bytes. This calculation excludes storage-layer framing outside ClearCrypt.
 
 ## Failure conditions
 
@@ -284,7 +344,7 @@ A reader must fail without reporting a complete valid output when any of these o
 - truncated header or record;
 - invalid chunk size or KDF parameter;
 - KDF parameters exceeding local policy;
-- wrapped-DEK authentication failure;
+- wrapped archive-key authentication failure;
 - unknown record type;
 - DATA index different from the expected index;
 - zero or excessive DATA length;
@@ -312,26 +372,28 @@ A detector may inspect the magic without a password. Detection does not authenti
 
 Encryption chooses a format explicitly. `encryptBytesV1` continues to write `CFENC001`; `encryptStreamV2` writes `CFENC002`. No existing V1 API silently changes its output format.
 
-## Items reserved for V2-003 review
+## Cryptographic review status
 
-Before implementation starts, V2-003 must confirm or amend:
+The V2-003 internal review accepted:
 
-- the `contentNoncePrefix || u64be(recordNumber)` construction;
-- the use of `wrapAad` for DEK wrapping;
-- the use of `archiveAad || recordHeader` for DATA and FINAL;
+- a fresh AMK restricted to one archive attempt and never used directly for content encryption;
+- HKDF-SHA-256 keys derived for each 1 GiB segment and a separately labelled FINAL key;
+- `contentNoncePrefix || u64be(localRecordNumber)` under each segment key;
+- `wrapAad` for AMK wrapping;
+- `archiveAad || recordHeader` for DATA and FINAL;
 - the empty-plaintext AES-GCM operation used for FINAL;
-- the maximum number of invocations under one DEK;
-- the maximum cumulative plaintext size;
-- the aggregate forgery budget with 128-bit tags;
-- whether key renewal is necessary within the supported maximum;
-- the independence requirements for generated archive values.
+- the 1 GiB per-segment and provisional 1 PiB global limits;
+- independent generation of the archive ID, nonce prefix, salt, wrap nonce and AMK.
 
-Any amendment that changes serialized bytes must update this document before V2-004 begins.
+See [the complete internal review](crypto-review-v2.md). An independent external review and a check against the final NIST SP 800-38D revision remain release gates. Any later amendment that changes serialized bytes requires new vectors and a format review.
 
 ## References
 
 - [NIST SP 800-38D, Galois/Counter Mode](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf): authenticated encryption, 96-bit IV recommendation, uniqueness requirements and deterministic IV construction.
+- [RFC 5869, HKDF](https://www.rfc-editor.org/rfc/rfc5869.html): extract-and-expand key derivation and context binding through `info`.
+- [Web Cryptography Level 2, HKDF](https://www.w3.org/TR/webcrypto/#hkdf): browser-facing HKDF operation.
 - [Web Cryptography Level 2, AES-GCM](https://www.w3.org/TR/webcrypto/#aes-gcm): browser-facing AES-GCM operation and validation rules.
 - [ClearCrypt V1 format](format-v1.md): existing password, KDF and compatibility rules.
 - [ClearCrypt v2 streaming API decision](design-v2-streaming-api.md): source/destination lifecycle, backpressure and scope.
+- [ClearCrypt V2 cryptographic construction review](crypto-review-v2.md): accepted construction, usage limits and remaining release gates.
 

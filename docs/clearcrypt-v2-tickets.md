@@ -73,7 +73,7 @@ Définir ce que garantit la première version de `CFENC002` et ce qu'elle ne pre
 
 ### V2-002 — Rédiger la spécification binaire provisoire `CFENC002`
 
-**Statut : brouillon terminé le 4 octobre 2026.** Framing consigné dans [ClearCrypt encrypted archive format V2](format-v2.md). La construction et les limites cryptographiques restent soumises à V2-003 avant implémentation.
+**Statut : brouillon terminé le 4 octobre 2026.** Framing consigné dans [ClearCrypt encrypted archive format V2](format-v2.md), puis amendé par la revue V2-003.
 
 **Objectif**
 
@@ -98,6 +98,8 @@ Décrire chaque octet du nouveau format avant d'implémenter le parseur ou le ch
 
 ### V2-003 — Valider la construction cryptographique
 
+**Statut : revue interne terminée puis amendée le 4 octobre 2026.** Construction segmentée et limites consignées dans [ClearCrypt V2 cryptographic construction review](crypto-review-v2.md). Une revue externe indépendante reste obligatoire avant la stabilisation et la publication de production.
+
 **Objectif**
 
 Faire approuver les règles de clés, nonces, données associées et terminaison avant leur diffusion.
@@ -108,8 +110,8 @@ Faire approuver les règles de clés, nonces, données associées et terminaison
 - lier chaque bloc à l'en-tête, au fichier, à son index, à son type et à sa longueur ;
 - authentifier le nombre de blocs et la taille totale dans l'enregistrement final ;
 - définir les domaines séparés pour les blocs de données, la fin et l'enveloppe de clé ;
-- fixer le nombre maximal de blocs et le budget maximal par clé ;
-- décider si un renouvellement de clé est requis pour atteindre la cible de 100 Go ;
+- fixer le nombre maximal de blocs par segment, le budget par clé et la limite globale ;
+- définir la dérivation HKDF-SHA-256 des clés de segment et de la clé FINAL ;
 - faire relire la construction et intégrer les corrections dans `format-v2.md`.
 
 **Critères d'acceptation**
@@ -131,6 +133,7 @@ Représenter et encoder les structures fixes de `CFENC002` sans encore traiter u
 
 - créer `src/v2/spec/` ;
 - ajouter les types de l'en-tête et des enregistrements ;
+- ajouter les identifiants et limites du key schedule segmenté ;
 - ajouter les fonctions d'encodage et de décodage des entiers ;
 - traiter les valeurs 64 bits sans perte de précision ;
 - ajouter des tests unitaires pour chaque champ et chaque limite.
@@ -194,6 +197,7 @@ Implémenter et tester le chiffrement authentifié d'un seul bloc conformément 
 
 - réutiliser ou isoler proprement les primitives AES-GCM existantes ;
 - construire le nonce et les données associées du bloc ;
+- dériver la clé du segment attendu depuis l'AMK et l'index global ;
 - chiffrer un bloc vide, complet ou court selon les règles du format ;
 - vérifier les bornes avant l'appel cryptographique ;
 - effacer au mieux les buffers temporaires appartenant au package.
@@ -236,7 +240,7 @@ Lire, regrouper, chiffrer et écrire un flux complet avec une mémoire bornée.
 **Travail**
 
 - dériver la KEK Argon2id une seule fois ;
-- générer et protéger une DEK par archive ;
+- générer et protéger une AMK par archive, puis dériver les clés de segment à la demande ;
 - regrouper les morceaux de source en blocs du format ;
 - écrire chaque bloc avant de lire une quantité non bornée de données supplémentaires ;
 - écrire l'enregistrement final authentifié ;
@@ -258,7 +262,7 @@ Lire, authentifier et écrire progressivement le contenu d'une archive v2.
 **Travail**
 
 - appliquer la politique de ressources avant Argon2id ;
-- déverrouiller la DEK ;
+- déverrouiller l'AMK et dériver les clés attendues à la demande ;
 - imposer une séquence stricte des indices ;
 - authentifier chaque bloc avant écriture ;
 - valider l'enregistrement final, les totaux et l'absence de données supplémentaires ;
@@ -350,6 +354,7 @@ Permettre une implémentation indépendante de `CFENC002`.
 **Travail**
 
 - créer au moins un vecteur complet avec mot de passe Unicode et contenu binaire ;
+- publier des intermédiaires HKDF couvrant le segment 0, une transition de segment et FINAL ;
 - couvrir fichier vide, dernier bloc court et plusieurs blocs ;
 - publier les valeurs intermédiaires nécessaires à la vérification ;
 - créer un vérificateur qui n'importe pas l'encodeur ou le décodeur v2 de ClearCrypt ;
