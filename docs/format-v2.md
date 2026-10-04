@@ -1,8 +1,12 @@
 # ClearCrypt encrypted archive format V2 (`CFENC002`)
 
-Status: provisional binary specification produced by V2-002 and amended by the V2-003 internal cryptographic review. Approved for implementation within the limits below; independent external review remains required before production-stable publication.
+Status: release-candidate binary specification implemented and qualified by
+V2-001 through V2-018. Independent external cryptographic review remains
+required before production-stable publication.
 
-This document defines the byte-level framing proposed for streaming ClearCrypt archives. `CFENC002` is distinct from `CFENC001`; a V1 reader must reject it and a V2 reader must not reinterpret a V1 archive.
+This document defines the byte-level framing for streaming ClearCrypt archives.
+`CFENC002` is distinct from `CFENC001`; a V1 reader must reject it and a V2
+reader must not reinterpret a V1 archive.
 
 ## Conventions
 
@@ -382,10 +386,17 @@ The V2-003 internal review accepted:
 - `wrapAad` for AMK wrapping;
 - `archiveAad || recordHeader` for DATA and FINAL;
 - the empty-plaintext AES-GCM operation used for FINAL;
-- the 1 GiB per-segment and provisional 1 PiB global limits;
+- the 1 GiB per-segment and release-candidate 1 PiB global limits;
 - independent generation of the archive ID, nonce prefix, salt, wrap nonce and AMK.
 
-See [the complete internal review](crypto-review-v2.md). An independent external review and a check against the final NIST SP 800-38D revision remain release gates. Any later amendment that changes serialized bytes requires new vectors and a format review.
+The internal review concluded that the construction is consistent with these
+engineering bounds. Segmentation limits AES-GCM use under each derived key; it
+does not protect the archive if the password, KEK or AMK is compromised. An
+independent external review must confirm or lower the 1 GiB per-key and 1 PiB
+global bounds before production-stable publication. The review must also check
+the construction against the then-current NIST SP 800-38D revision. Any later
+amendment that changes serialized bytes requires new vectors, interoperability
+tests and a format review.
 
 ## Normative test vectors
 
@@ -425,6 +436,7 @@ and WebKit decrypt the same JSON archives in the Playwright suite.
 - [Web Cryptography Level 2, HKDF](https://www.w3.org/TR/webcrypto/#hkdf): browser-facing HKDF operation.
 - [Web Cryptography Level 2, AES-GCM](https://www.w3.org/TR/webcrypto/#aes-gcm): browser-facing AES-GCM operation and validation rules.
 - [ClearCrypt V1 format](format-v1.md): existing password, KDF and compatibility rules.
-- [ClearCrypt v2 streaming API decision](design-v2-streaming-api.md): source/destination lifecycle, backpressure and scope.
-- [ClearCrypt V2 cryptographic construction review](crypto-review-v2.md): accepted construction, usage limits and remaining release gates.
-
+- [ClearCrypt V2 practical guide](guide-v2.md): API lifecycle, backpressure,
+  compatibility, platform integration and practical limits.
+- [ClearCrypt V2 qualification](qualification-v2.md): reproducible benchmark,
+  large-volume results and tested platform limits.

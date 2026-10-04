@@ -12,17 +12,18 @@ that can be decrypted offline without the ClearCrypt service.
 ## Requirements
 - Node.js 24 or newer.
 
-## Public API (stable)
-The stable API surface is:
+## Public API
+The public API surface is:
 - `encryptBytesV1(plaintext, password, options?)`
 - `decryptBytesV1(data, password, options?)`
 - `encryptStreamV2(source, destination, password, options?)`
 - `decryptStreamV2(source, destination, password, options?)`
+- `encryptFileV2(inputPath, outputPath, password, options?)` from `clearcrypt/node`
+- `decryptFileV2(inputPath, outputPath, password, options?)` from `clearcrypt/node`
 
-All other modules are internal and may change.
-
-The V2 streaming API is implemented, but the `CFENC002` format remains
-provisional until its independent cryptographic review is complete.
+Unexported modules are internal and may change. The V1 API and `CFENC001` remain
+stable. The V2 API is implemented and qualified; `CFENC002` remains a release
+candidate until its independent cryptographic review is complete.
 
 ## Install
 Published package:
@@ -68,9 +69,9 @@ writeFileSync("decrypted.txt", decrypted);
 - The V2 API uses WHATWG `ReadableStream<Uint8Array>` and
   `WritableStream<Uint8Array>` with backpressure and bounded internal buffers.
 - For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
-- The reference browser integration, required capabilities, progressive
-  destinations, and Worker lifecycle are documented in
-  [`docs/browser-v2.md`](docs/browser-v2.md).
+- The reference browser integration, progressive destinations, Worker
+  lifecycle, format detection and practical limits are documented in the
+  [V2 guide](docs/guide-v2.md).
 - The KDF resource policy limits Argon2 parameters, not the archive or plaintext size.
 - See [`docs/memory-v1.md`](docs/memory-v1.md) for buffer ownership, secret
   lifetime, the peak-memory model, and benchmark.
@@ -190,8 +191,8 @@ try {
 ## Format note
 Both file formats are self-describing. Header/AAD fields are stored in cleartext
 but authenticated, while payloads remain encrypted. V1 is specified in
-[`docs/format-v1.md`](docs/format-v1.md). The provisional streaming format is
-specified in [`docs/format-v2.md`](docs/format-v2.md).
+[`docs/format-v1.md`](docs/format-v1.md). The release-candidate streaming format
+is specified in [`docs/format-v2.md`](docs/format-v2.md).
 
 ## File CLI
 
@@ -241,7 +242,18 @@ Stable exit codes:
 | 74 | cryptographic failure, runtime failure, or V2 interruption |
 
 ## Compatibility
-The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.
+
+The API uses WebCrypto-compatible primitives and runs in modern browsers and
+Node.js 24+. The first eight bytes identify the archive: `CFENC001` uses the V1
+buffer API and `CFENC002` uses the V2 streaming API. Inspecting this magic does
+not authenticate the file; the selected decryptor must still validate the
+whole archive.
+
+V1 encryption never silently switches to V2, and existing V1 archives remain
+readable. Migrating an archive requires decrypting V1 and encrypting the
+plaintext again with V2. There is no bounded-memory migration path because V1
+requires the complete archive in memory. See the [V2 guide](docs/guide-v2.md)
+for a detection example and the complete compatibility policy.
 
 ## Browser tests
 
@@ -271,8 +283,8 @@ npm run build
 npm run benchmark:v2
 ```
 
-See [the V2 benchmark protocol](docs/benchmarks-v2.md) before comparing runs or
-using larger input sizes.
+See [the V2 qualification](docs/qualification-v2.md) for the protocol before
+comparing runs or using larger input sizes.
 
 The recorded large-volume qualification covers 1, 10, and 100 GiB with real
 archive files, plus a supplementary 100 GiB bounded-pipe run. A separate opt-in
@@ -283,7 +295,10 @@ npm run qualify:node:v2
 npm run qualify:browser:v2 -- --size-mib 64
 ```
 
-See [the recorded V2 qualification and its limits](docs/qualification-v2.md).
+The same document records the qualification results and their limits. Node.js
+round trips used real 1, 10 and 100 GiB archives with stable memory usage.
+Browser Workers are currently qualified at 64 MiB on the three engines; no
+maximum mobile size has been qualified.
 
 ## Property tests and parser fuzzing
 
@@ -312,7 +327,8 @@ npm run release:check
 ```
 
 `release:check` verifies TypeScript, unit and browser tests, the independent V1
-vector, the build, and the exact contents reported by `npm pack --dry-run`.
+and V2 vectors, the build, and the exact contents reported by
+`npm pack --dry-run`.
 
 Publishing is performed only by `.github/workflows/release.yml`. Update
 `package.json` and `CHANGELOG.md`, merge through the protected `main` branch,
@@ -342,8 +358,9 @@ Typical agent workflows include:
 - creating encrypted data for cold storage;
 - encrypting files before transfer to an external service.
 
-### example
+### Example
 
+```ts
 import { encryptBytesV1 } from "clearcrypt";
 
 const plaintext = await loadFileBytes();
@@ -356,6 +373,7 @@ const encryptedArchive = await encryptBytesV1(
 );
 
 await uploadEncryptedArchive(encryptedArchive);
+```
 
 The upload function is intentionally outside ClearCrypt. The package only
 produces encrypted bytes. Integrators remain responsible for storage,

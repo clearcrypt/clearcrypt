@@ -97,6 +97,20 @@ estimate. Web Workers protect the main UI thread but do not make Argon2 itself
 cheaper. ClearCrypt also serializes concurrent Argon2 jobs because
 `argon2-browser` uses shared mutable WASM runtime state.
 
+## Browser dependency controls
+
+V1 and V2 currently pin `argon2-browser@1.18.0` for archive compatibility. Its
+non-SIMD WASM has SHA-256
+`0c2149886c13e4eae4a6ca25ee71d47423c5c8740a874cf04ff816d1b2c901d7`.
+The Node adapter verifies this digest and the WASM structure before first use;
+the package also requires Argon2id version 1.3 output with a 32-byte hash.
+
+The dependency has an old Emscripten wrapper and remains a maintenance risk.
+An upgrade or replacement must preserve every committed vector and existing
+archive, pass Node, Chromium, Firefox, WebKit, Worker, concurrency and resource
+policy tests, and use an audited WASM artifact. Different Argon2 output requires
+a new format or KDF identifier rather than changing V1 semantics.
+
 ## Required device matrix
 
 Run both profiles in both main-thread and Worker modes for every row:

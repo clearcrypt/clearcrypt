@@ -1,7 +1,36 @@
 # Qualification des grands volumes ClearCrypt V2
 
-Cette qualification vérifie le comportement de `CFENC002` sur de grands flux.
-Elle complète les microbenchmarks décrits dans [benchmarks-v2.md](benchmarks-v2.md).
+Cette qualification vérifie le débit, la mémoire bornée et l'intégrité de
+`CFENC002`. Elle regroupe le protocole de benchmark et les résultats de la
+campagne sur grands volumes.
+
+## Benchmark reproductible
+
+Après construction, le benchmark Node.js 24 compare par défaut des blocs de 1,
+4 et 8 Mio sur 128 Mio de données, avec un échauffement et trois mesures :
+
+```sh
+npm run build
+npm run benchmark:v2
+npm run benchmark:v2 -- --size-mib 1024 --runs 5 --warmups 1
+```
+
+`--scenario instrumented` utilise une destination qui compte les octets sans
+les conserver. `--scenario files` mesure un parcours fichier vers fichier. Le
+rapport JSON distingue :
+
+- Argon2id, coût fixe payé une fois par opération ;
+- les E/S brutes, sans chiffrement ;
+- le pipeline V2 avec une KEK fixe réservée au benchmark, donc sans Argon2id.
+
+Chaque mesure tourne dans un nouveau processus avec `--expose-gc`. Le rapport
+donne les durées, médiane, p95, débit, RSS et mémoire `arrayBuffers`. Les sources
+sont produites progressivement et les sorties sont vérifiées par longueur,
+authentification ou SHA-256. Les E/S ne doivent pas être soustraites
+mécaniquement du pipeline : le cache système et l'ordonnancement diffèrent.
+
+Les résultats décrivent seulement la machine indiquée. Aucun seuil de débit
+n'est imposé en CI et aucune durée extrapolée n'est présentée comme une mesure.
 
 ## Protocole Node.js
 

@@ -38,6 +38,9 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   supplementary 100 GiB bounded-pipe run, with streaming SHA-256 verification,
   memory metrics, cancellation and write-failure probes, and a 64 MiB Web
   Worker campaign on Chromium, Firefox, and WebKit.
+- Finalize the V2 practical guide, V1/V2 detection and migration policy,
+  measured platform limits, release-candidate specification, and published
+  package contents.
 
 ## [1.1.0] - 2026-07-25
 
