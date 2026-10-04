@@ -40,7 +40,18 @@ function requestWorker(message) {
   });
 }
 
+function requestResponsiveWorker(message) {
+  let ticks = 0;
+  const timer = setInterval(() => {
+    ticks += 1;
+  }, 0);
+  return requestWorker(message)
+    .then((value) => ({ value, mainThreadTicks: ticks }))
+    .finally(() => clearInterval(timer));
+}
+
 let cancelableOperation;
+let cancelableV2Operation;
 
 window.clearcryptTest = {
   profiles: KDF_PROFILES_V1,
@@ -74,6 +85,22 @@ window.clearcryptTest = {
     return requestWorker({
       action: "roundTrip",
       plaintext,
+      password,
+    });
+  },
+
+  workerV2RoundTrip(totalBytes, password) {
+    return requestResponsiveWorker({
+      action: "v2RoundTrip",
+      totalBytes,
+      password,
+    });
+  },
+
+  workerV2BoundedProbe(totalBytes, password) {
+    return requestResponsiveWorker({
+      action: "v2BoundedProbe",
+      totalBytes,
       password,
     });
   },
@@ -148,6 +175,59 @@ window.clearcryptTest = {
     const error = new Error("Worker operation aborted");
     error.name = "AbortError";
     rejectResult(error);
+  },
+
+  async startCancelableV2Worker(totalBytes, password) {
+    if (cancelableV2Operation) {
+      throw new Error("A cancelable V2 operation is already active");
+    }
+    const worker = createWorker();
+    const id = crypto.randomUUID();
+    let resolveStarted;
+    let resolveResult;
+    const started = new Promise((resolve) => {
+      resolveStarted = resolve;
+    });
+    const result = new Promise((resolve) => {
+      resolveResult = resolve;
+    });
+
+    worker.addEventListener("message", ({ data }) => {
+      if (data.started && data.id === id) {
+        resolveStarted();
+        return;
+      }
+      cancelableV2Operation = undefined;
+      resolveResult(data);
+    });
+    worker.addEventListener("error", (event) => {
+      cancelableV2Operation = undefined;
+      resolveResult({
+        ok: false,
+        error: { name: "Error", code: null, message: event.message },
+        closing: false,
+      });
+    });
+    cancelableV2Operation = { worker, id, result };
+    worker.postMessage({ action: "startCancelableV2", id, totalBytes, password });
+    await started;
+  },
+
+  waitForCancelableV2Worker() {
+    if (!cancelableV2Operation) {
+      throw new Error("No cancelable V2 operation is active");
+    }
+    return cancelableV2Operation.result;
+  },
+
+  cancelV2Worker() {
+    if (!cancelableV2Operation) {
+      throw new Error("No cancelable V2 operation is active");
+    }
+    cancelableV2Operation.worker.postMessage({
+      action: "cancelV2",
+      id: cancelableV2Operation.id,
+    });
   },
 };
 

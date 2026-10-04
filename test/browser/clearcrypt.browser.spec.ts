@@ -45,6 +45,62 @@ test("runs encryption and decryption in a Web Worker", async ({ page }) => {
   expect(decrypted).toEqual(plaintext);
 });
 
+test("streams a V2 round-trip in a Web Worker while the page stays responsive", async ({
+  page,
+}) => {
+  const totalBytes = 3 * 64 * 1024 + 17;
+  const probe = await page.evaluate(
+    ({ totalBytes, password }) =>
+      window.clearcryptTest.workerV2RoundTrip(totalBytes, password),
+    { totalBytes, password }
+  );
+
+  expect(probe.mainThreadTicks).toBeGreaterThan(0);
+  expect(probe.value.encryption.inputBytes).toBe(totalBytes);
+  expect(probe.value.decryption.outputBytes).toBe(totalBytes);
+  expect(probe.value.plaintext.bytes).toBe(totalBytes);
+  expect(probe.value.source.checksum).toBe(probe.value.decryptedChecksum);
+  expect(probe.value.source.maxChunkBytes).toBeLessThanOrEqual(64 * 1024);
+  expect(probe.value.archive.maxActiveWrites).toBe(1);
+  expect(probe.value.plaintext.maxActiveWrites).toBe(1);
+});
+
+test("keeps browser V2 stream buffers bounded as simulated input grows", async ({
+  page,
+}) => {
+  const sizes = [1 * 1024 * 1024 + 13, 8 * 1024 * 1024 + 29];
+  const probes = [];
+  for (const totalBytes of sizes) {
+    probes.push(
+      await page.evaluate(
+        ({ totalBytes, password }) =>
+          window.clearcryptTest.workerV2BoundedProbe(totalBytes, password),
+        { totalBytes, password }
+      )
+    );
+  }
+
+  for (const [index, probe] of probes.entries()) {
+    expect(probe.mainThreadTicks).toBeGreaterThan(0);
+    expect(probe.value.result.inputBytes).toBe(sizes[index]);
+    expect(probe.value.source.maxChunkBytes).toBeLessThanOrEqual(64 * 1024);
+    expect(probe.value.destination.maxWriteBytes).toBeLessThanOrEqual(64 * 1024);
+    expect(probe.value.destination.maxActiveWrites).toBe(1);
+    expect(probe.value.progressEvents).toBeGreaterThan(0);
+  }
+  const small = probes[0]!;
+  const large = probes[1]!;
+  expect(large.value.result.inputBytes).toBeGreaterThan(
+    small.value.result.inputBytes * 7
+  );
+  expect(large.value.source.maxChunkBytes).toBe(
+    small.value.source.maxChunkBytes
+  );
+  expect(large.value.destination.maxWriteBytes).toBe(
+    small.value.destination.maxWriteBytes
+  );
+});
+
 test("serializes concurrent Argon2 calls without corrupting results", async ({
   page,
 }) => {
@@ -117,6 +173,28 @@ test("cancels an in-flight Worker by terminating it", async ({ page }) => {
   });
 });
 
+test("cooperatively cancels V2 streams and closes their Worker", async ({ page }) => {
+  await page.evaluate(
+    ({ password }) =>
+      window.clearcryptTest.startCancelableV2Worker(
+        32 * 1024 * 1024,
+        password
+      ),
+    { password }
+  );
+  const pending = page.evaluate(() =>
+    window.clearcryptTest.waitForCancelableV2Worker()
+  );
+  await page.evaluate(() => window.clearcryptTest.cancelV2Worker());
+
+  const result = await pending;
+  expect(result.ok).toBe(false);
+  expect(result.error.code).toBe("ABORTED");
+  expect(result.closing).toBe(true);
+  expect(result.diagnostics.source.cancelled).toBe(true);
+  expect(result.diagnostics.destination.aborted).toBe(true);
+});
+
 declare global {
   interface Window {
     clearcryptTest: {
@@ -139,6 +217,14 @@ declare global {
         plaintext: number[],
         password: string
       ): Promise<number[]>;
+      workerV2RoundTrip(
+        totalBytes: number,
+        password: string
+      ): Promise<ResponsiveWorkerResult<V2RoundTripProbe>>;
+      workerV2BoundedProbe(
+        totalBytes: number,
+        password: string
+      ): Promise<ResponsiveWorkerResult<V2BoundedProbe>>;
       concurrentRoundTrips(
         payloads: number[][],
         password: string
@@ -146,6 +232,60 @@ declare global {
       startCancelableWorker(): Promise<void>;
       waitForCancelableWorker(): Promise<number[]>;
       cancelWorker(): void;
+      startCancelableV2Worker(totalBytes: number, password: string): Promise<void>;
+      waitForCancelableV2Worker(): Promise<V2CancellationResult>;
+      cancelV2Worker(): void;
     };
   }
 }
+
+type DestinationMetrics = {
+  bytes: number;
+  writes: number;
+  maxActiveWrites: number;
+  maxWriteBytes: number;
+  aborted: boolean;
+};
+
+type SourceMetrics = {
+  checksum: number;
+  maxChunkBytes: number;
+  cancelled: boolean;
+};
+
+type OperationMetrics = {
+  inputBytes: number;
+  outputBytes: number;
+  records: number;
+};
+
+type ResponsiveWorkerResult<T> = {
+  value: T;
+  mainThreadTicks: number;
+};
+
+type V2RoundTripProbe = {
+  source: SourceMetrics;
+  archive: DestinationMetrics;
+  plaintext: DestinationMetrics;
+  decryptedChecksum: number;
+  encryption: OperationMetrics;
+  decryption: OperationMetrics;
+};
+
+type V2BoundedProbe = {
+  source: SourceMetrics;
+  destination: DestinationMetrics;
+  progressEvents: number;
+  result: OperationMetrics;
+};
+
+type V2CancellationResult = {
+  ok: boolean;
+  error: { name: string; code: string | null; message: string };
+  diagnostics: {
+    source: SourceMetrics;
+    destination: DestinationMetrics;
+  };
+  closing: boolean;
+};

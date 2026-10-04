@@ -68,6 +68,9 @@ writeFileSync("decrypted.txt", decrypted);
 - The V2 API uses WHATWG `ReadableStream<Uint8Array>` and
   `WritableStream<Uint8Array>` with backpressure and bounded internal buffers.
 - For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
+- The reference browser integration, required capabilities, progressive
+  destinations, and Worker lifecycle are documented in
+  [`docs/browser-v2.md`](docs/browser-v2.md).
 - The KDF resource policy limits Argon2 parameters, not the archive or plaintext size.
 - See [`docs/memory-v1.md`](docs/memory-v1.md) for buffer ownership, secret
   lifetime, the peak-memory model, and benchmark.

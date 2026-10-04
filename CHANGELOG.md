@@ -16,6 +16,9 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add the Node.js `clearcrypt/node` file adapter and streaming V2 CLI commands
   with atomic destination replacement, progress, signal cancellation, and
   stable filesystem error codes.
+- Validate V2 streaming inside Web Workers on Chromium, Firefox, and WebKit,
+  including UI responsiveness, bounded backpressure, cooperative cancellation,
+  and Worker closure.
 
 ## [1.1.0] - 2026-07-25
 

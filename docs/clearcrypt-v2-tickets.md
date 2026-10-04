@@ -345,6 +345,12 @@ Démontrer un traitement réellement streaming sur des fichiers locaux.
 
 ### V2-013 — Valider le parcours navigateur et Web Worker
 
+**Statut : terminé le 4 octobre 2026.** Le parcours décrit dans
+[ClearCrypt v2 dans un navigateur et un Web Worker](browser-v2.md) est couvert
+par Playwright dans Chromium, Firefox et WebKit. Il exécute le pipeline v2 dans
+un Worker, conserve une source et une destination bornées, mesure la réactivité
+de la page et vérifie l'annulation puis la fermeture du Worker.
+
 **Objectif**
 
 Prouver que le cœur v2 fonctionne dans les navigateurs supportés sans bloquer l'interface.

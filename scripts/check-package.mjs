@@ -12,6 +12,7 @@ const expectedFiles = [
   "dist/node.d.ts",
   "dist/node.js",
   "docs/argon2-profiles-v1.md",
+  "docs/browser-v2.md",
   "docs/format-v1.md",
   "docs/format-v2.md",
   "docs/memory-v1.md",

@@ -30,6 +30,7 @@
     "docs/format-v1.md",
     "docs/format-v2.md",
     "docs/argon2-profiles-v1.md",
+    "docs/browser-v2.md",
     "docs/memory-v1.md",
     "scripts/benchmark-argon2-v1.mjs",
     "scripts/benchmark-memory-v1.mjs",
