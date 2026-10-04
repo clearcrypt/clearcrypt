@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   fuzz:
-    name: CFENC001 parser / 50000 runs
+    name: CFENC001 and CFENC002 parsers / 50000 runs each
     runs-on: ubuntu-latest
 
     steps:

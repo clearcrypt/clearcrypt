@@ -403,6 +403,13 @@ Permettre une implémentation indépendante de `CFENC002`.
 
 ### V2-015 — Ajouter les tests adversariaux et de propriétés
 
+**Statut : terminé le 4 octobre 2026.** Les troncatures exhaustives des petits
+vecteurs, les découpages de flux reproductibles, les longueurs et compteurs
+hostiles ainsi que les suppressions, duplications, permutations et collages de
+blocs sont couverts. Un corpus minimal verrouille la taxonomie publique et les
+tests vérifient qu'une longueur rejetée ne pilote pas une allocation de même
+taille.
+
 **Objectif**
 
 Tester systématiquement le parseur et les garanties du format face aux archives hostiles.

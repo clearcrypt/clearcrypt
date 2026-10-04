@@ -262,10 +262,12 @@ Use `npm run test:browser -- --project=chromium` to run one engine.
 ## Property tests and parser fuzzing
 
 The regular Vitest suite includes deterministic `fast-check` properties for
-binary round trips, every fixed header field, every truncation offset, extreme
-payload lengths, invalid inputs, and KDF resource-policy enforcement.
+binary round trips, every fixed header field, every truncation offset, arbitrary
+V2 stream splits, hostile lengths and counters, invalid inputs, and KDF
+resource-policy enforcement.
 
-Run a longer parser-only fuzz campaign with a reproducible seed:
+Run a longer parser-only fuzz campaign against the V1 and V2 parsers with a
+reproducible seed:
 
 ```bash
 npm run test:fuzz

@@ -20,7 +20,12 @@ const seed = readPositiveInteger("--seed", 0x0cf001);
 const vitest = resolve("node_modules/vitest/vitest.mjs");
 const result = spawnSync(
   process.execPath,
-  [vitest, "run", "test/fuzz-parser.v1.test.ts"],
+  [
+    vitest,
+    "run",
+    "test/fuzz-parser.v1.test.ts",
+    "test/fuzz-parser.v2.test.ts",
+  ],
   {
     cwd: process.cwd(),
     env: {

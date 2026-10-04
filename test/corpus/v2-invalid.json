@@ -1,0 +1,61 @@
+[
+  {
+    "label": "partial magic",
+    "hex": "4346454e",
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "unsupported version",
+    "vector": "unicode-binary",
+    "patches": [{ "offset": 8, "hex": "ff" }],
+    "expectedCode": "UNSUPPORTED_FORMAT"
+  },
+  {
+    "label": "unsupported content cipher",
+    "vector": "unicode-binary",
+    "patches": [{ "offset": 9, "hex": "ff" }],
+    "expectedCode": "UNSUPPORTED_FORMAT"
+  },
+  {
+    "label": "invalid archive chunk size",
+    "vector": "unicode-binary",
+    "patches": [{ "offset": 11, "hex": "ffffffff" }],
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "zero DATA plaintext length",
+    "vector": "unicode-binary",
+    "patches": [{ "offset": 131, "hex": "00000000" }],
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "oversized DATA plaintext length",
+    "vector": "unicode-binary",
+    "patches": [{ "offset": 131, "hex": "ffffffff" }],
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "missing FINAL",
+    "vector": "unicode-binary",
+    "truncateAt": 180,
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "trailing byte",
+    "vector": "unicode-binary",
+    "appendHex": "00",
+    "expectedCode": "INVALID_FORMAT"
+  },
+  {
+    "label": "altered DATA ciphertext",
+    "vector": "unicode-binary",
+    "xor": [{ "offset": 140, "value": 1 }],
+    "expectedCode": "AUTH_FAILED"
+  },
+  {
+    "label": "altered FINAL tag",
+    "vector": "unicode-binary",
+    "xor": [{ "offset": 212, "value": 1 }],
+    "expectedCode": "AUTH_FAILED"
+  }
+]
