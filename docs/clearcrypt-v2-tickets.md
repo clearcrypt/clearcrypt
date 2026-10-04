@@ -149,6 +149,8 @@ Représenter et encoder les structures fixes de `CFENC002` sans encore traiter u
 
 ### V2-005 — Implémenter le lecteur incrémental borné
 
+**Statut : terminé le 4 octobre 2026.** Lecteur à contre-pression ajouté dans `src/v2/reader.ts`, avec validation de la structure, de l'ordre et de la terminaison avant toute intégration cryptographique.
+
 **Objectif**
 
 Lire un flux découpé arbitrairement sans charger l'archive complète.
