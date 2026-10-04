@@ -4,8 +4,8 @@ import {
   FormatError,
   ResourcePolicyError,
 } from "../src/v1/errors";
-import { decryptStreamV2 } from "../src/v2/decrypt-stream";
-import { encryptStreamV2 } from "../src/v2/encrypt-stream";
+import { decryptStreamV2Internal } from "../src/v2/decrypt-stream";
+import { encryptStreamV2Internal } from "../src/v2/encrypt-stream";
 import {
   MIN_CHUNK_SIZE_V2,
   V2_HEADER_LENGTH,
@@ -91,7 +91,7 @@ async function encryptedArchive(plaintext: Uint8Array): Promise<{
 }> {
   const fixture = cryptoFixture();
   const destination = outputDestination();
-  await encryptStreamV2(
+  await encryptStreamV2Internal(
     readable([plaintext]),
     destination.stream,
     "password",
@@ -107,7 +107,7 @@ async function decryptArchive(
 ) {
   const destination = outputDestination();
   const dependencies = fixture.decryption();
-  const operation = decryptStreamV2(
+  const operation = decryptStreamV2Internal(
     readable(archiveChunks),
     destination.stream,
     "password",
@@ -127,7 +127,7 @@ describe("V2 decryption stream", () => {
   it("round-trips with the real Argon2id implementation", async () => {
     const plaintext = bytes(47, 0xa0);
     const encryptedDestination = outputDestination();
-    await encryptStreamV2(
+    await encryptStreamV2Internal(
       readable([plaintext]),
       encryptedDestination.stream,
       "real-password",
@@ -137,7 +137,7 @@ describe("V2 decryption stream", () => {
     const decryptedDestination = outputDestination();
 
     await expect(
-      decryptStreamV2(
+      decryptStreamV2Internal(
         readable([archive]),
         decryptedDestination.stream,
         "real-password",
@@ -194,7 +194,7 @@ describe("V2 decryption stream", () => {
     const deriveKek = vi.fn(async () => fixture.kek.slice());
 
     await expect(
-      decryptStreamV2(
+      decryptStreamV2Internal(
         readable([archive]),
         destination.stream,
         "password",

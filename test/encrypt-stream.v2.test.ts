@@ -5,7 +5,7 @@ import {
   buildDataNonceV2,
   decryptDataRecordV2,
 } from "../src/v2/data-record-crypto";
-import { encryptStreamV2 } from "../src/v2/encrypt-stream";
+import { encryptStreamV2Internal } from "../src/v2/encrypt-stream";
 import { V2IncrementalReader, type V2ReaderItem } from "../src/v2/reader";
 import { decodeHeaderV2 } from "../src/v2/spec/codec";
 import {
@@ -122,7 +122,7 @@ describe("V2 encryption stream", () => {
     const fixture = deterministicDependencies();
     const destination = collectingDestination(1024);
 
-    const result = await encryptStreamV2(
+    const result = await encryptStreamV2Internal(
       streamFromChunks([]),
       destination.stream,
       "password",
@@ -164,7 +164,7 @@ describe("V2 encryption stream", () => {
     ]);
     const destination = collectingDestination(plaintext.length + 1024);
 
-    const result = await encryptStreamV2(
+    const result = await encryptStreamV2Internal(
       source,
       destination.stream,
       "password",
@@ -229,7 +229,7 @@ describe("V2 encryption stream", () => {
       },
     });
 
-    const result = await encryptStreamV2(
+    const result = await encryptStreamV2Internal(
       source,
       destination,
       "password",
@@ -278,7 +278,7 @@ describe("V2 encryption stream", () => {
       },
     });
 
-    const operation = encryptStreamV2(
+    const operation = encryptStreamV2Internal(
       source,
       destination,
       "password",

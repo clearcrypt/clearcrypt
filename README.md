@@ -16,8 +16,13 @@ that can be decrypted offline without the ClearCrypt service.
 The stable API surface is:
 - `encryptBytesV1(plaintext, password, options?)`
 - `decryptBytesV1(data, password, options?)`
+- `encryptStreamV2(source, destination, password, options?)`
+- `decryptStreamV2(source, destination, password, options?)`
 
 All other modules are internal and may change.
+
+The V2 streaming API is implemented, but the `CFENC002` format remains
+provisional until its independent cryptographic review is complete.
 
 ## Install
 Published package:
@@ -59,9 +64,10 @@ writeFileSync("decrypted.txt", decrypted);
 ```
 
 ## Web integration constraints
-- Current API is buffer-based (`Uint8Array` in / `Uint8Array` out). It is not a streaming API.
+- The V1 API is buffer-based (`Uint8Array` in / `Uint8Array` out).
+- The V2 API uses WHATWG `ReadableStream<Uint8Array>` and
+  `WritableStream<Uint8Array>` with backpressure and bounded internal buffers.
 - For browser UI apps (Angular, React, etc.), run crypto operations in a Web Worker to avoid blocking the main thread.
-- For very large files, enforce UI size limits until a streaming API is introduced.
 - The KDF resource policy limits Argon2 parameters, not the archive or plaintext size.
 - See [`docs/memory-v1.md`](docs/memory-v1.md) for buffer ownership, secret
   lifetime, the peak-memory model, and benchmark.
@@ -79,7 +85,35 @@ decryptBytesV1(
   password: Uint8Array | string,
   options?: V1DecryptOptions
 ): Promise<Uint8Array>
+
+encryptStreamV2(
+  source: ReadableStream<Uint8Array>,
+  destination: WritableStream<Uint8Array>,
+  password: Uint8Array | string,
+  options?: V2EncryptOptions
+): Promise<V2OperationResult>
+
+decryptStreamV2(
+  source: ReadableStream<Uint8Array>,
+  destination: WritableStream<Uint8Array>,
+  password: Uint8Array | string,
+  options?: V2DecryptOptions
+): Promise<V2OperationResult>
 ```
+
+V2 uses a 4 MiB chunk by default. Encryption accepts a power-of-two `chunkSize`
+from 64 KiB through 16 MiB and optional Argon2id settings under `kdf`.
+Both operations accept an `AbortSignal` and a synchronous `onProgress` callback.
+Progress is emitted at phase transitions and after successful records rather
+than for every source chunk.
+
+`V2OperationResult` contains `bigint` counters named `inputBytes`,
+`outputBytes`, and `records`, plus `format: "CFENC002"`.
+
+On any error or cancellation, ClearCrypt cancels the source and aborts the
+destination where possible. Bytes already written may remain physically
+present. Use a temporary or transactional destination and publish it only after
+the returned promise resolves successfully.
 
 ## Options
 `encryptBytesV1` accepts optional KDF settings:
@@ -132,6 +166,7 @@ Codes:
 - `AUTH_FAILED`: wrong password or data was tampered with.
 - `CRYPTO_FAILED`: a cryptographic operation failed.
 - `ENVIRONMENT_ERROR`: the required cryptographic runtime is unavailable.
+- `ABORTED`: a V2 streaming operation was cancelled through its `AbortSignal`.
 - `INTERNAL`: an unexpected, unclassified error occurred.
 
 Example:
@@ -150,9 +185,10 @@ try {
 ```
 
 ## Format note
-The V1 file format is self-describing. Header/AAD fields are stored in cleartext but authenticated. The payload remains encrypted.
-The normative binary specification and deterministic vectors are documented in
-[`docs/format-v1.md`](docs/format-v1.md).
+Both file formats are self-describing. Header/AAD fields are stored in cleartext
+but authenticated, while payloads remain encrypted. V1 is specified in
+[`docs/format-v1.md`](docs/format-v1.md). The provisional streaming format is
+specified in [`docs/format-v2.md`](docs/format-v2.md).
 
 ## File CLI
 

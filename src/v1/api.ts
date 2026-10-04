@@ -35,6 +35,7 @@ export type ClearcryptErrorCode =
   | "AUTH_FAILED"
   | "CRYPTO_FAILED"
   | "ENVIRONMENT_ERROR"
+  | "ABORTED"
   | "INTERNAL";
 
 export class ClearcryptError extends Error {

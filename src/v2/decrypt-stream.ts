@@ -4,7 +4,6 @@ import { wipeBytesBestEffort } from "../v1/memory";
 import { validatePublicPassword } from "../v1/password";
 import {
   enforceDecryptResourcePolicy,
-  type DecryptResourcePolicy,
 } from "../v1/resource-policy";
 import {
   unwrapArchiveMasterKeyV2,
@@ -15,13 +14,10 @@ import {
   deriveSegmentKeyV2,
   getDataRecordPositionV2,
 } from "./data-record-crypto";
-import type { V2OperationResult } from "./encrypt-stream";
 import { V2IncrementalReader } from "./reader";
 import type { V2Header } from "./spec/types";
-
-export type V2DecryptPipelineOptions = {
-  resourcePolicy?: Partial<DecryptResourcePolicy>;
-};
+import { emitProgress, listenForAbort, throwIfAborted } from "./stream-control";
+import type { V2DecryptOptions, V2OperationResult } from "./stream-types";
 
 export type V2DecryptStreamDependencies = {
   deriveKek?: typeof deriveKekArgon2id;
@@ -35,11 +31,11 @@ async function ignoreFailure(operation: () => Promise<unknown>): Promise<void> {
   }
 }
 
-export async function decryptStreamV2(
+export async function decryptStreamV2Internal(
   source: ReadableStream<Uint8Array>,
   destination: WritableStream<Uint8Array>,
   password: Uint8Array | string,
-  options: V2DecryptPipelineOptions = {},
+  options: V2DecryptOptions = {},
   dependencies: V2DecryptStreamDependencies = {}
 ): Promise<V2OperationResult> {
   if (!source || typeof source.getReader !== "function") {
@@ -48,6 +44,7 @@ export async function decryptStreamV2(
   if (!destination || typeof destination.getWriter !== "function") {
     throw new InvalidParamsError("V2 decryption destination must be a WritableStream");
   }
+  throwIfAborted(options.signal);
 
   const passwordBytes = validatePublicPassword(password);
   const ownsPasswordBytes = typeof password === "string";
@@ -68,6 +65,11 @@ export async function decryptStreamV2(
     if (ownsPasswordBytes) wipeBytesBestEffort(passwordBytes);
     throw error;
   }
+  const stopListeningForAbort = listenForAbort(
+    options.signal,
+    sourceReader,
+    destinationWriter
+  );
 
   let sourceFinished = false;
   let destinationClosed = false;
@@ -83,6 +85,7 @@ export async function decryptStreamV2(
   let records = 0n;
 
   try {
+    throwIfAborted(options.signal);
     const archiveReader = new V2IncrementalReader(async (item) => {
       if (item.kind === "header") {
         archiveAad = item.bytes;
@@ -97,6 +100,13 @@ export async function decryptStreamV2(
           },
           options.resourcePolicy
         );
+        emitProgress(options.onProgress, {
+          phase: "kdf",
+          inputBytes,
+          outputBytes,
+          records,
+        });
+        throwIfAborted(options.signal);
         kek = await deriveKek({
           password: passwordBytes,
           salt: item.header.passwordSalt,
@@ -104,15 +114,23 @@ export async function decryptStreamV2(
           memoryCost: item.header.memoryCostKiB,
           parallelism: item.header.parallelism,
         });
+        throwIfAborted(options.signal);
         try {
           archiveMasterKey = await unwrapArchiveMasterKeyV2({
             archiveAad: item.bytes,
             kekRaw32: kek,
           });
+          throwIfAborted(options.signal);
         } finally {
           wipeBytesBestEffort(kek);
           kek = undefined;
         }
+        emitProgress(options.onProgress, {
+          phase: "processing",
+          inputBytes,
+          outputBytes,
+          records,
+        });
         return;
       }
 
@@ -121,6 +139,7 @@ export async function decryptStreamV2(
       }
 
       if (item.kind === "data") {
+        throwIfAborted(options.signal);
         const position = getDataRecordPositionV2(
           item.header.recordNumber,
           archiveHeader.chunkSize
@@ -141,25 +160,48 @@ export async function decryptStreamV2(
           tag: item.tag,
           segmentKey: currentSegmentKey,
         });
+        throwIfAborted(options.signal);
         await destinationWriter.write(plaintext);
         outputBytes += BigInt(plaintext.length);
         records += 1n;
+        emitProgress(options.onProgress, {
+          phase: "processing",
+          inputBytes,
+          outputBytes,
+          records,
+        });
         return;
       }
 
       currentSegmentKey = undefined;
       currentSegmentNumber = undefined;
+      emitProgress(options.onProgress, {
+        phase: "finalizing",
+        inputBytes,
+        outputBytes,
+        records,
+      });
+      throwIfAborted(options.signal);
       await verifyFinalRecordV2({
         archiveAad,
         archiveMasterKey,
         headerBytes: item.headerBytes,
         tag: item.tag,
       });
+      throwIfAborted(options.signal);
       finalAuthenticated = true;
+      emitProgress(options.onProgress, {
+        phase: "finalizing",
+        inputBytes,
+        outputBytes,
+        records,
+      });
     });
 
     while (true) {
+      throwIfAborted(options.signal);
       const read = await sourceReader.read();
+      throwIfAborted(options.signal);
       if (read.done) {
         sourceFinished = true;
         break;
@@ -175,6 +217,7 @@ export async function decryptStreamV2(
       throw new InvalidParamsError("V2 FINAL record was not authenticated");
     }
 
+    throwIfAborted(options.signal);
     await destinationWriter.close();
     destinationClosed = true;
     return { format: "CFENC002", inputBytes, outputBytes, records };
@@ -187,6 +230,7 @@ export async function decryptStreamV2(
     }
     throw error;
   } finally {
+    stopListeningForAbort();
     currentSegmentKey = undefined;
     wipeBytesBestEffort(archiveMasterKey);
     wipeBytesBestEffort(kek);

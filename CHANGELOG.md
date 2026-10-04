@@ -7,6 +7,13 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Add the provisional `CFENC002` streaming format and public
+  `encryptStreamV2` / `decryptStreamV2` APIs with bounded buffers,
+  backpressure, cancellation, progress reporting, segmented content keys, and
+  authenticated termination.
+
 ## [1.1.0] - 2026-07-25
 
 ### Security

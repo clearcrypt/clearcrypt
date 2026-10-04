@@ -291,6 +291,8 @@ Lire, authentifier et écrire progressivement le contenu d'une archive v2.
 
 ### V2-011 — Stabiliser l'API publique v2
 
+**Statut : terminé le 4 octobre 2026.** `encryptStreamV2` et `decryptStreamV2` sont exportées depuis l'entrée publique avec types communs, progression bornée, `AbortSignal`, erreurs publiques et builds Node/navigateur validés. Le format `CFENC002` reste provisoire jusqu'à la revue cryptographique externe prévue.
+
 **Objectif**
 
 Exposer les pipelines avec un contrat commun à Node.js et aux navigateurs.

@@ -25,24 +25,8 @@ import {
   VERSION_V2,
 } from "./spec/constants";
 import { V2IncrementalWriter } from "./writer";
-
-export type V2EncryptKdfOptions = {
-  timeCost?: number;
-  memoryCostKiB?: number;
-  parallelism?: number;
-};
-
-export type V2EncryptPipelineOptions = {
-  chunkSize?: number;
-  kdf?: V2EncryptKdfOptions;
-};
-
-export type V2OperationResult = {
-  format: "CFENC002";
-  inputBytes: bigint;
-  outputBytes: bigint;
-  records: bigint;
-};
+import { emitProgress, listenForAbort, throwIfAborted } from "./stream-control";
+import type { V2EncryptOptions, V2OperationResult } from "./stream-types";
 
 export type V2EncryptStreamDependencies = {
   randomBytes?: (length: number) => Uint8Array;
@@ -74,11 +58,11 @@ async function ignoreFailure(operation: () => Promise<unknown>): Promise<void> {
   }
 }
 
-export async function encryptStreamV2(
+export async function encryptStreamV2Internal(
   source: ReadableStream<Uint8Array>,
   destination: WritableStream<Uint8Array>,
   password: Uint8Array | string,
-  options: V2EncryptPipelineOptions = {},
+  options: V2EncryptOptions = {},
   dependencies: V2EncryptStreamDependencies = {}
 ): Promise<V2OperationResult> {
   if (!source || typeof source.getReader !== "function") {
@@ -87,6 +71,7 @@ export async function encryptStreamV2(
   if (!destination || typeof destination.getWriter !== "function") {
     throw new InvalidParamsError("V2 encryption destination must be a WritableStream");
   }
+  throwIfAborted(options.signal);
 
   const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE_V2;
   getDataRecordPositionV2(0n, chunkSize);
@@ -115,6 +100,11 @@ export async function encryptStreamV2(
     if (ownsPasswordBytes) wipeBytesBestEffort(passwordBytes);
     throw error;
   }
+  const stopListeningForAbort = listenForAbort(
+    options.signal,
+    sourceReader,
+    destinationWriter
+  );
 
   let sourceFinished = false;
   let destinationClosed = false;
@@ -128,6 +118,7 @@ export async function encryptStreamV2(
   let totalPlaintextLength = 0n;
 
   try {
+    throwIfAborted(options.signal);
     const archiveId = checkedRandomBytes(randomBytes, 16);
     const contentNoncePrefix = checkedRandomBytes(randomBytes, 4);
     const passwordSalt = checkedRandomBytes(randomBytes, 16);
@@ -140,6 +131,13 @@ export async function encryptStreamV2(
       memoryCost: kdf.memoryCostKiB,
       parallelism: kdf.parallelism,
     });
+    emitProgress(options.onProgress, {
+      phase: "kdf",
+      inputBytes,
+      outputBytes,
+      records,
+    });
+    throwIfAborted(options.signal);
     kek = await deriveKek({
       password: passwordBytes,
       salt: passwordSalt,
@@ -147,6 +145,7 @@ export async function encryptStreamV2(
       memoryCost: kdf.memoryCostKiB,
       parallelism: kdf.parallelism,
     });
+    throwIfAborted(options.signal);
 
     const header = await createWrappedHeaderV2({
       fields: {
@@ -167,6 +166,7 @@ export async function encryptStreamV2(
       archiveMasterKey,
       kekRaw32: kek,
     });
+    throwIfAborted(options.signal);
     const archiveAad = encodeHeaderV2(header);
     const archiveWriter = new V2IncrementalWriter({
       async write(chunk) {
@@ -175,12 +175,19 @@ export async function encryptStreamV2(
       },
     });
     await archiveWriter.writeHeader(header);
+    emitProgress(options.onProgress, {
+      phase: "processing",
+      inputBytes,
+      outputBytes,
+      records,
+    });
 
     workBuffer = new Uint8Array(chunkSize);
     let buffered = 0;
     let currentSegmentNumber: bigint | undefined;
 
     const emitDataRecord = async (plaintext: Uint8Array): Promise<void> => {
+      throwIfAborted(options.signal);
       if (records >= MAX_DATA_RECORDS_V2) {
         throw new InvalidParamsError("V2 DATA record count exceeds the format limit");
       }
@@ -205,6 +212,7 @@ export async function encryptStreamV2(
         plaintext,
         segmentKey: currentSegmentKey,
       });
+      throwIfAborted(options.signal);
       await archiveWriter.writeDataRecord(
         encrypted.header,
         encrypted.ciphertext,
@@ -212,10 +220,18 @@ export async function encryptStreamV2(
       );
       records += 1n;
       totalPlaintextLength = nextTotal;
+      emitProgress(options.onProgress, {
+        phase: "processing",
+        inputBytes,
+        outputBytes,
+        records,
+      });
     };
 
     while (true) {
+      throwIfAborted(options.signal);
       const read = await sourceReader.read();
+      throwIfAborted(options.signal);
       if (read.done) {
         sourceFinished = true;
         break;
@@ -249,6 +265,13 @@ export async function encryptStreamV2(
       workBuffer.fill(0);
     }
     currentSegmentKey = undefined;
+    emitProgress(options.onProgress, {
+      phase: "finalizing",
+      inputBytes,
+      outputBytes,
+      records,
+    });
+    throwIfAborted(options.signal);
 
     const finalRecord = await authenticateFinalRecordV2({
       archiveAad,
@@ -256,7 +279,15 @@ export async function encryptStreamV2(
       dataRecordCount: records,
       totalPlaintextLength,
     });
+    throwIfAborted(options.signal);
     await archiveWriter.writeFinalRecord(finalRecord.header, finalRecord.tag);
+    emitProgress(options.onProgress, {
+      phase: "finalizing",
+      inputBytes,
+      outputBytes,
+      records,
+    });
+    throwIfAborted(options.signal);
     await destinationWriter.close();
     destinationClosed = true;
 
@@ -270,6 +301,7 @@ export async function encryptStreamV2(
     }
     throw error;
   } finally {
+    stopListeningForAbort();
     currentSegmentKey = undefined;
     wipeBytesBestEffort(workBuffer);
     wipeBytesBestEffort(archiveMasterKey);
