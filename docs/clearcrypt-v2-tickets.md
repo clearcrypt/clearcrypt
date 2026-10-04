@@ -195,6 +195,8 @@ Lire un flux découpé arbitrairement sans charger l'archive complète.
 
 ### V2-007 — Chiffrer un enregistrement de données
 
+**Statut : terminé le 4 octobre 2026.** Dérivation HKDF segmentée, calcul du nonce et de l'AAD, puis chiffrement AES-256-GCM d'un bloc ajoutés dans `src/v2/data-record-crypto.ts`, avec vecteur déterministe et tests aux frontières de segment.
+
 **Objectif**
 
 Implémenter et tester le chiffrement authentifié d'un seul bloc conformément à la spécification.
