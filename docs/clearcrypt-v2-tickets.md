@@ -267,6 +267,8 @@ Lire, regrouper, chiffrer et écrire un flux complet avec une mémoire bornée.
 
 ### V2-010 — Construire le pipeline de déchiffrement v2
 
+**Statut : terminé le 4 octobre 2026.** Pipeline de déchiffrement séquentiel ajouté dans `src/v2/decrypt-stream.ts`, avec politique de ressources avant Argon2id, authentification avant écriture, validation de `FINAL` et exigence de fin réelle du flux.
+
 **Objectif**
 
 Lire, authentifier et écrire progressivement le contenu d'une archive v2.

@@ -1,9 +1,14 @@
-import { aeadEncryptAes256Gcm, importAesGcmKey } from "../v1/aead";
+import {
+  aeadDecryptAes256Gcm,
+  aeadEncryptAes256Gcm,
+  importAesGcmKey,
+} from "../v1/aead";
 import { getWebCrypto } from "../v1/crypto-runtime";
 import { CryptoOperationError, InvalidParamsError } from "../v1/errors";
 import { buildDataNonceV2 } from "./data-record-crypto";
 import {
   decodeHeaderV2,
+  decodeFinalRecordHeaderV2,
   encodeFinalRecordHeaderV2,
   encodeHeaderV2,
 } from "./spec/codec";
@@ -79,6 +84,26 @@ export async function createWrappedHeaderV2(params: {
     wrappedArchiveKeyCiphertext: wrapped.ciphertext,
     wrappedArchiveKeyTag: wrapped.tag,
   };
+}
+
+export async function unwrapArchiveMasterKeyV2(params: {
+  archiveAad: Uint8Array;
+  kekRaw32: Uint8Array;
+}): Promise<Uint8Array> {
+  const { archiveAad, kekRaw32 } = params;
+  const header = decodeHeaderV2(archiveAad);
+  const key = await importAesGcmKey(kekRaw32);
+  const archiveMasterKey = await aeadDecryptAes256Gcm({
+    key,
+    nonce: header.wrapNonce,
+    ciphertext: header.wrappedArchiveKeyCiphertext,
+    tag: header.wrappedArchiveKeyTag,
+    associatedAuthenticatedData: archiveAad.subarray(0, V2_WRAP_AAD_LENGTH),
+  });
+  if (archiveMasterKey.length !== ARCHIVE_MASTER_KEY_LENGTH_V2) {
+    throw new CryptoOperationError("Invalid V2 unwrapped archive key length");
+  }
+  return archiveMasterKey;
 }
 
 export async function deriveFinalKeyV2(params: {
@@ -166,4 +191,34 @@ export async function authenticateFinalRecordV2(params: {
     throw new CryptoOperationError("Invalid V2 FINAL authentication output");
   }
   return { header, headerBytes, tag: result.tag };
+}
+
+export async function verifyFinalRecordV2(params: {
+  archiveAad: Uint8Array;
+  archiveMasterKey: Uint8Array;
+  headerBytes: Uint8Array;
+  tag: Uint8Array;
+}): Promise<void> {
+  const { archiveAad, archiveMasterKey, headerBytes, tag } = params;
+  const archiveHeader = decodeHeaderV2(archiveAad);
+  decodeFinalRecordHeaderV2(headerBytes);
+  if (!(tag instanceof Uint8Array) || tag.length !== AUTH_TAG_LENGTH_V2) {
+    throw new InvalidParamsError(
+      `V2 FINAL tag must be exactly ${AUTH_TAG_LENGTH_V2} bytes`
+    );
+  }
+  const key = await deriveFinalKeyV2({
+    archiveMasterKey,
+    archiveId: archiveHeader.archiveId,
+  });
+  const plaintext = await aeadDecryptAes256Gcm({
+    key,
+    nonce: buildDataNonceV2(archiveHeader.contentNoncePrefix, 0n),
+    ciphertext: new Uint8Array(0),
+    tag,
+    associatedAuthenticatedData: concatBytes(archiveAad, headerBytes),
+  });
+  if (plaintext.length !== 0) {
+    throw new CryptoOperationError("Invalid V2 FINAL authentication plaintext");
+  }
 }
