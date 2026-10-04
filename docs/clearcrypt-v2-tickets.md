@@ -172,6 +172,8 @@ Lire un flux découpé arbitrairement sans charger l'archive complète.
 
 ### V2-006 — Implémenter le writer incrémental
 
+**Statut : terminé le 4 octobre 2026.** Writer séquentiel et destinations de test ajoutés dans `src/v2/writer.ts`, avec contre-pression, arrêt définitif sur erreur et validation du framing avant émission.
+
 **Objectif**
 
 Émettre une archive sans concaténer tous ses octets.
