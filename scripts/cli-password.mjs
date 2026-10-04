@@ -40,7 +40,6 @@ async function readTtyLine(prompt, input, output) {
   output.write(prompt);
   emitKeypressEvents(input);
   const wasRaw = input.isRaw;
-  const wasPaused = input.isPaused();
   input.setRawMode(true);
   input.resume();
 
@@ -49,7 +48,10 @@ async function readTtyLine(prompt, input, output) {
     const cleanup = () => {
       input.removeListener("keypress", onKeypress);
       input.setRawMode(Boolean(wasRaw));
-      if (wasPaused) input.pause();
+      // emitKeypressEvents installs a data listener and resume() makes stdin
+      // keep the Node.js event loop alive. Password reading owns this terminal
+      // session, so always pause it once the line has been collected.
+      input.pause();
     };
     const finish = (result) => {
       output.write("\n");

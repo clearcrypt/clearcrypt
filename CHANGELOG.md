@@ -7,6 +7,11 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Pause interactive terminal input after CLI password entry so V2 encryption
+  and decryption commands exit naturally after success or failure.
+
 ### Added
 
 - Add the provisional `CFENC002` streaming format and public
