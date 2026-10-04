@@ -125,6 +125,8 @@ Faire approuver les règles de clés, nonces, données associées et terminaison
 
 ### V2-004 — Ajouter les types, constantes et codecs v2
 
+**Statut : terminé le 4 octobre 2026.** Constantes, types et codecs ajoutés dans `src/v2/spec/`, avec tests unitaires des champs, limites et compteurs 64 bits.
+
 **Objectif**
 
 Représenter et encoder les structures fixes de `CFENC002` sans encore traiter un fichier complet.
