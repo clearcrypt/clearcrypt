@@ -195,13 +195,36 @@ specified in [`docs/format-v2.md`](docs/format-v2.md).
 After building the package, files can be encrypted or decrypted with:
 
 ```bash
-node scripts/cc-file.mjs encrypt <input> <output>
-node scripts/cc-file.mjs decrypt <input> <output>
+node scripts/cc-file.mjs encrypt <input> <output>     # V1, in memory
+node scripts/cc-file.mjs decrypt <input> <output>     # V1, in memory
+node scripts/cc-file.mjs encrypt-v2 <input> <output>  # V2, streaming
+node scripts/cc-file.mjs decrypt-v2 <input> <output>  # V2, streaming
 ```
 
 Interactive password input is not echoed. Encryption asks for the password twice;
 decryption asks once. Passwords are never trimmed or printed. Use an interactive
 terminal rather than piping a password for normal operation.
+
+The V2 commands report progress on standard error and keep memory bounded by the
+configured block size. They write to a temporary file beside the requested output
+and replace the destination only after the archive has been completely processed
+and authenticated. A wrong password, disk error, or interruption therefore leaves
+an existing destination unchanged. `SIGINT` and `SIGTERM` cancel the operation.
+
+Node.js applications can use the same atomic file adapter:
+
+```ts
+import { decryptFileV2, encryptFileV2 } from "clearcrypt/node";
+
+await encryptFileV2("archive.tar", "archive.tar.cc2", password, {
+  signal: abortController.signal,
+  onProgress: ({ inputBytes, records }) => {
+    console.log(inputBytes, records);
+  },
+});
+
+await decryptFileV2("archive.tar.cc2", "archive.tar", password);
+```
 
 Stable exit codes:
 
@@ -212,7 +235,7 @@ Stable exit codes:
 | 65 | password input, confirmation, or policy failure |
 | 66 | input file could not be read |
 | 73 | output file could not be written |
-| 74 | cryptographic or runtime failure |
+| 74 | cryptographic failure, runtime failure, or V2 interruption |
 
 ## Compatibility
 The API uses WebCrypto-compatible primitives and runs in modern browsers and Node.js 24+.

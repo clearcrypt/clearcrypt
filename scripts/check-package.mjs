@@ -9,6 +9,8 @@ const expectedFiles = [
   "dist/browser.js",
   "dist/index.d.ts",
   "dist/index.js",
+  "dist/node.d.ts",
+  "dist/node.js",
   "docs/argon2-profiles-v1.md",
   "docs/format-v1.md",
   "docs/format-v2.md",
@@ -58,6 +60,17 @@ if (!Array.isArray(report) || report.length !== 1 || !Array.isArray(report[0]?.f
 }
 
 const actualFiles = report[0].files.map(({ path }) => path).sort();
+const generatedV2TypeFiles = actualFiles.filter((path) =>
+  /^dist\/stream-types-[A-Za-z0-9_-]+\.d\.ts$/.test(path)
+);
+if (generatedV2TypeFiles.length !== 1) {
+  console.error(
+    `Expected one generated V2 type declaration, found ${generatedV2TypeFiles.length}`
+  );
+  process.exit(1);
+}
+expectedFiles.push(generatedV2TypeFiles[0]);
+expectedFiles.sort();
 const missing = expectedFiles.filter((path) => !actualFiles.includes(path));
 const unexpected = actualFiles.filter((path) => !expectedFiles.includes(path));
 

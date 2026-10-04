@@ -317,6 +317,12 @@ Exposer les pipelines avec un contrat commun à Node.js et aux navigateurs.
 
 ### V2-012 — Ajouter l'adaptateur de fichiers et la CLI Node
 
+**Statut : terminé le 4 octobre 2026.** L'entrée `clearcrypt/node` expose les
+adaptateurs de fichiers v2, et la CLI conserve les commandes v1 tout en ajoutant
+`encrypt-v2` et `decrypt-v2`. La sortie temporaire n'est renommée qu'après succès.
+La vérification automatisée couvre un fichier de 48 Mio avec un tas V8 limité à
+32 Mio, une mauvaise clé, les erreurs de fichiers et une interruption `SIGINT`.
+
 **Objectif**
 
 Démontrer un traitement réellement streaming sur des fichiers locaux.

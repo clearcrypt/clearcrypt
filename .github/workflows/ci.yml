@@ -48,6 +48,9 @@ jobs:
       - name: Run unit tests
         run: npm run test:run
 
+      - name: Verify the streaming V2 file CLI
+        run: npm run test:cli:v2
+
       - name: Verify the independent V1 vector
         run: npm run test:vector:v1
 

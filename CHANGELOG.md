@@ -13,6 +13,9 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `encryptStreamV2` / `decryptStreamV2` APIs with bounded buffers,
   backpressure, cancellation, progress reporting, segmented content keys, and
   authenticated termination.
+- Add the Node.js `clearcrypt/node` file adapter and streaming V2 CLI commands
+  with atomic destination replacement, progress, signal cancellation, and
+  stable filesystem error codes.
 
 ## [1.1.0] - 2026-07-25
 
