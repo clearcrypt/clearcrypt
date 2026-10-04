@@ -219,6 +219,8 @@ Implémenter et tester le chiffrement authentifié d'un seul bloc conformément 
 
 ### V2-008 — Déchiffrer un enregistrement de données
 
+**Statut : terminé le 4 octobre 2026.** Déchiffrement authentifié d'un bloc ajouté dans `src/v2/data-record-crypto.ts`, avec validation structurelle préalable et erreur d'authentification uniforme pour une mauvaise clé ou des données altérées.
+
 **Objectif**
 
 Authentifier un bloc avant de remettre son plaintext au consommateur.

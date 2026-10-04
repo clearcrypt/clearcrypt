@@ -1,13 +1,15 @@
-import { aeadEncryptAes256Gcm } from "../v1/aead";
+import { aeadDecryptAes256Gcm, aeadEncryptAes256Gcm } from "../v1/aead";
 import { getWebCrypto } from "../v1/crypto-runtime";
 import { CryptoOperationError, InvalidParamsError } from "../v1/errors";
 import {
   decodeHeaderV2,
+  decodeDataRecordHeaderV2,
   encodeDataRecordHeaderV2,
   encodeU64BE,
 } from "./spec/codec";
 import {
   ARCHIVE_MASTER_KEY_LENGTH_V2,
+  AUTH_TAG_LENGTH_V2,
   CONTENT_NONCE_PREFIX_LENGTH_V2,
   MAX_CHUNK_SIZE_V2,
   MAX_DATA_RECORDS_V2,
@@ -203,4 +205,59 @@ export async function encryptDataRecordV2(params: {
   });
 
   return { header, headerBytes, ciphertext, tag };
+}
+
+export async function decryptDataRecordV2(params: {
+  archiveAad: Uint8Array;
+  archiveMasterKey: Uint8Array;
+  headerBytes: Uint8Array;
+  ciphertext: Uint8Array;
+  tag: Uint8Array;
+}): Promise<Uint8Array> {
+  const { archiveAad, archiveMasterKey, headerBytes, ciphertext, tag } = params;
+  if (!(archiveAad instanceof Uint8Array)) {
+    throw new InvalidParamsError("V2 archive AAD must be a Uint8Array");
+  }
+  if (!(headerBytes instanceof Uint8Array)) {
+    throw new InvalidParamsError("V2 DATA record header must be a Uint8Array");
+  }
+  if (!(ciphertext instanceof Uint8Array)) {
+    throw new InvalidParamsError("V2 DATA ciphertext must be a Uint8Array");
+  }
+  if (!(tag instanceof Uint8Array) || tag.length !== AUTH_TAG_LENGTH_V2) {
+    throw new InvalidParamsError(
+      `V2 DATA tag must be exactly ${AUTH_TAG_LENGTH_V2} bytes`
+    );
+  }
+
+  const archiveHeader = decodeHeaderV2(archiveAad);
+  const recordHeader = decodeDataRecordHeaderV2(headerBytes, archiveHeader.chunkSize);
+  if (ciphertext.length !== recordHeader.plaintextLength) {
+    throw new InvalidParamsError(
+      "V2 DATA ciphertext length does not match its record header"
+    );
+  }
+
+  const position = getDataRecordPositionV2(
+    recordHeader.recordNumber,
+    archiveHeader.chunkSize
+  );
+  const nonce = buildDataNonceV2(
+    archiveHeader.contentNoncePrefix,
+    position.localRecordNumber
+  );
+  const aad = buildDataAadV2(archiveAad, headerBytes);
+  const key = await deriveSegmentKeyV2({
+    archiveMasterKey,
+    archiveId: archiveHeader.archiveId,
+    segmentNumber: position.segmentNumber,
+  });
+
+  return aeadDecryptAes256Gcm({
+    key,
+    nonce,
+    ciphertext,
+    tag,
+    associatedAuthenticatedData: aad,
+  });
 }
