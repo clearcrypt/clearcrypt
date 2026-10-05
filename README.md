@@ -1,6 +1,6 @@
 # ClearCrypt
 
-**Auditable client-side file encryption for browsers, Node.js and AI-agent workflows.**
+**Client-side file encryption for browsers, Node.js and AI-agent workflows.**
 
 ClearCrypt encrypts files locally with Argon2id and AES-256-GCM before
 upload, transfer, backup or archival. The library does not transmit plaintext,
@@ -22,8 +22,7 @@ The public API surface is:
 - `decryptFileV2(inputPath, outputPath, password, options?)` from `clearcrypt/node`
 
 Unexported modules are internal and may change. The V1 API and `CFENC001` remain
-stable. The V2 API is implemented and qualified; `CFENC002` remains a release
-candidate until its independent cryptographic review is complete.
+stable. Version 1.2.0 adds the V2 streaming API and the `CFENC002` format.
 
 ## Install
 Published package:
@@ -191,8 +190,13 @@ try {
 ## Format note
 Both file formats are self-describing. Header/AAD fields are stored in cleartext
 but authenticated, while payloads remain encrypted. V1 is specified in
-[`docs/format-v1.md`](docs/format-v1.md). The release-candidate streaming format
+[`docs/format-v1.md`](docs/format-v1.md). The V2 streaming format
 is specified in [`docs/format-v2.md`](docs/format-v2.md).
+
+Encryption assumes a trusted client and a strong password. Compromised client
+code or a stolen content key can expose plaintext without guessing the password.
+ClearCrypt does not hide lengths, detect replay of a complete valid archive, or
+limit total workload resources. See the [security boundaries](SECURITY.md#security-boundaries).
 
 ## File CLI
 
@@ -214,6 +218,11 @@ configured block size. They write to a temporary file beside the requested outpu
 and replace the destination only after the archive has been completely processed
 and authenticated. A wrong password, disk error, or interruption therefore leaves
 an existing destination unchanged. `SIGINT` and `SIGTERM` cancel the operation.
+
+Both V1 and V2 CLI outputs use atomic replacement and private permissions
+(`0600` on Unix). V2 temporary files use the same permissions. On Windows,
+protect the destination directory with appropriate ACLs. Use a directory that
+other users cannot modify; abrupt process termination can leave temporary files.
 
 Node.js applications can use the same atomic file adapter:
 

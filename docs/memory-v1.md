@@ -102,7 +102,7 @@ The application should consider:
 
 Do not describe V1 as streaming and do not split one AES-GCM ciphertext into
 ad-hoc chunks. True large-file and resumable operation requires a separately
-specified and audited chunk-authenticated format such as a future `CFENC002`.
+specified chunk-authenticated format such as `CFENC002` in ClearCrypt 1.2.0.
 
 ## Node benchmark
 

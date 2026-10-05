@@ -1,7 +1,7 @@
 {
   "name": "clearcrypt",
-  "version": "1.1.1",
-  "description": "Auditable client-side file encryption for browsers, Node.js and AI-agent workflows. Argon2id, AES-256-GCM, zero-knowledge design and offline decryption.",
+  "version": "1.2.0",
+  "description": "Client-side file encryption for browsers, Node.js and AI-agent workflows. Argon2id, AES-256-GCM, zero-knowledge design and offline decryption.",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -27,6 +27,7 @@
   "files": [
     "benchmarks/argon2/browser",
     "dist",
+    "SECURITY.md",
     "docs/format-v1.md",
     "docs/format-v2.md",
     "docs/argon2-profiles-v1.md",
@@ -41,6 +42,7 @@
     "scripts/run-browser-qualification-v2.mjs",
     "scripts/cc-file.mjs",
     "scripts/cli-password.mjs",
+    "scripts/private-file.mjs",
     "scripts/serve-argon2-benchmark.mjs",
     "scripts/verify-v1-vector.mjs",
     "scripts/verify-v2-vectors.mjs",

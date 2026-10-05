@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { writePrivateFileAtomic } from "./private-file.mjs";
 import {
   CLI_EXIT,
   PasswordConfirmationError,
@@ -135,7 +136,7 @@ async function main() {
     }
 
     try {
-      writeFileSync(outputPath, output);
+      writePrivateFileAtomic(outputPath, output);
     } catch {
       console.error("OUTPUT_ERROR");
       return CLI_EXIT.OUTPUT;

@@ -66,7 +66,7 @@ describe("argon2-browser Node adapter", () => {
     }
   });
 
-  it("validates the audited WebAssembly binary", async () => {
+  it("validates the pinned WebAssembly binary", async () => {
     const metadata = await getNodeArgon2WasmMetadata();
 
     expect(metadata.byteLength).toBe(25_725);
