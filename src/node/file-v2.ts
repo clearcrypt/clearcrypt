@@ -69,7 +69,11 @@ async function transformFileV2(params: {
     `.${basename(outputPath)}.clearcrypt-${process.pid}-${randomUUID()}.tmp`
   );
   const input = createReadStream(inputPath);
-  const output = createWriteStream(temporaryPath, { flags: "wx" });
+  const output = createWriteStream(temporaryPath, { flags: "wx", mode: 0o600 });
+  let ownsTemporaryFile = false;
+  output.once("open", () => {
+    ownsTemporaryFile = true;
+  });
   let inputError: unknown;
   let outputError: unknown;
   input.once("error", (error) => {
@@ -94,7 +98,7 @@ async function transformFileV2(params: {
     input.destroy();
     output.destroy();
     await Promise.allSettled([finished(input), finished(output)]);
-    await removeTemporaryFile(temporaryPath);
+    if (ownsTemporaryFile) await removeTemporaryFile(temporaryPath);
     if (inputError) throw new ClearcryptFileInputError(inputError);
     if (outputError) throw new ClearcryptFileOutputError(outputError);
     throw error;

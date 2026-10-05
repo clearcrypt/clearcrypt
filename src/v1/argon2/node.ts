@@ -8,7 +8,7 @@ import type {
   Argon2idHashParams,
 } from "./types";
 
-const AUDITED_WASM_SHA256 =
+const EXPECTED_WASM_SHA256 =
   "0c2149886c13e4eae4a6ca25ee71d47423c5c8740a874cf04ff816d1b2c901d7";
 
 type NodeRuntime = {
@@ -60,9 +60,9 @@ async function loadNodeRuntime(): Promise<NodeRuntime> {
   if (!WebAssembly.validate(wasmBinary)) {
     throw new Error("argon2-browser contains an invalid WebAssembly module");
   }
-  if (wasmSha256 !== AUDITED_WASM_SHA256) {
+  if (wasmSha256 !== EXPECTED_WASM_SHA256) {
     throw new Error(
-      "argon2-browser WebAssembly digest does not match the audited binary"
+      "argon2-browser WebAssembly digest does not match the pinned binary"
     );
   }
 

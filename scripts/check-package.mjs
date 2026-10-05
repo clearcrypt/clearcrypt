@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 const expectedFiles = [
   "LICENSE",
   "README.md",
+  "SECURITY.md",
   "benchmarks/argon2/browser/index.html",
   "benchmarks/argon2/browser/main.js",
   "benchmarks/argon2/browser/worker.js",
@@ -28,6 +29,7 @@ const expectedFiles = [
   "scripts/benchmark-argon2-v1.mjs",
   "scripts/cc-file.mjs",
   "scripts/cli-password.mjs",
+  "scripts/private-file.mjs",
   "scripts/serve-argon2-benchmark.mjs",
   "scripts/verify-v1-vector.mjs",
   "scripts/verify-v2-vectors.mjs",

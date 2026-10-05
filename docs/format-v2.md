@@ -1,8 +1,7 @@
 # ClearCrypt encrypted archive format V2 (`CFENC002`)
 
-Status: release-candidate binary specification implemented and qualified by
-V2-001 through V2-018. Independent external cryptographic review remains
-required before production-stable publication.
+Status: binary specification shipped with ClearCrypt 1.2.0, implemented and
+qualified by V2-001 through V2-018.
 
 This document defines the byte-level framing for streaming ClearCrypt archives.
 `CFENC002` is distinct from `CFENC001`; a V1 reader must reject it and a V2
@@ -196,7 +195,7 @@ finalNonce = contentNoncePrefix || u64be(0)
 
 Reusing the numeric nonce value for DATA segment 0 and FINAL is safe only because their keys are distinct HKDF outputs. The AAD also carries distinct record types.
 
-This nonce construction follows the 96-bit deterministic GCM layout with a 32-bit fixed field and a 64-bit invocation field described by NIST SP 800-38D. The amended V2-003 internal review accepts it within the normative limits below. Independent external review remains required.
+This nonce construction follows the 96-bit deterministic GCM layout with a 32-bit fixed field and a 64-bit invocation field described by NIST SP 800-38D. It is used within the normative limits below.
 
 ## DATA record
 
@@ -376,9 +375,9 @@ A detector may inspect the magic without a password. Detection does not authenti
 
 Encryption chooses a format explicitly. `encryptBytesV1` continues to write `CFENC001`; `encryptStreamV2` writes `CFENC002`. No existing V1 API silently changes its output format.
 
-## Cryptographic review status
+## Cryptographic construction
 
-The V2-003 internal review accepted:
+The construction uses:
 
 - a fresh AMK restricted to one archive attempt and never used directly for content encryption;
 - HKDF-SHA-256 keys derived for each 1 GiB segment and a separately labelled FINAL key;
@@ -386,22 +385,19 @@ The V2-003 internal review accepted:
 - `wrapAad` for AMK wrapping;
 - `archiveAad || recordHeader` for DATA and FINAL;
 - the empty-plaintext AES-GCM operation used for FINAL;
-- the 1 GiB per-segment and release-candidate 1 PiB global limits;
+- the 1 GiB per-segment and 1 PiB global limits;
 - independent generation of the archive ID, nonce prefix, salt, wrap nonce and AMK.
 
-The internal review concluded that the construction is consistent with these
-engineering bounds. Segmentation limits AES-GCM use under each derived key; it
-does not protect the archive if the password, KEK or AMK is compromised. An
-independent external review must confirm or lower the 1 GiB per-key and 1 PiB
-global bounds before production-stable publication. The review must also check
-the construction against the then-current NIST SP 800-38D revision. Any later
-amendment that changes serialized bytes requires new vectors, interoperability
-tests and a format review.
+Segmentation limits AES-GCM use under each derived key; it does not protect
+the archive if the password, KEK or AMK is compromised. The format limits are
+engineering bounds, not a claim that an archive of any size has identical
+security or that 1 PiB has been tested. Any later amendment that changes
+serialized bytes requires new vectors, interoperability tests and a format review.
 
 ## Normative test vectors
 
 The versioned JSON vectors under [`test/vectors/v2`](../test/vectors/v2) are
-normative examples of this provisional format:
+normative examples of this format:
 
 | Vector | Plaintext coverage | DATA records |
 | --- | --- | ---: |

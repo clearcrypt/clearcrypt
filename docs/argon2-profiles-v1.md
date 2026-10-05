@@ -108,7 +108,7 @@ the package also requires Argon2id version 1.3 output with a 32-byte hash.
 The dependency has an old Emscripten wrapper and remains a maintenance risk.
 An upgrade or replacement must preserve every committed vector and existing
 archive, pass Node, Chromium, Firefox, WebKit, Worker, concurrency and resource
-policy tests, and use an audited WASM artifact. Different Argon2 output requires
+policy tests, and use a pinned WASM artifact. Different Argon2 output requires
 a new format or KDF identifier rather than changing V1 semantics.
 
 ## Required device matrix

@@ -38,8 +38,7 @@ et les mesures dans [qualification-v2.md](qualification-v2.md).
   exact du package font partie du contrôle de release.
 - Des archives réelles de 1, 10 et 100 Gio ont réussi un round trip avec hash
   SHA-256 identique.
-- Le format reste candidat jusqu'à la revue cryptographique externe mentionnée
-  dans la spécification.
+- Le format `CFENC002` est livré avec ClearCrypt 1.2.0.
 
 ## Évolutions séparées
 

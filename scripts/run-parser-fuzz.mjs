@@ -23,6 +23,7 @@ const result = spawnSync(
   [
     vitest,
     "run",
+    "--testTimeout=120000",
     "test/fuzz-parser.v1.test.ts",
     "test/fuzz-parser.v2.test.ts",
   ],

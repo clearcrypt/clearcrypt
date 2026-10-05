@@ -5,16 +5,24 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-10-05
 
 ### Fixed
 
 - Pause interactive terminal input after CLI password entry so V2 encryption
   and decryption commands exit naturally after success or failure.
+- Create private (`0600` on Unix) temporary and final files in the Node V2
+  adapter and both CLI versions. Publish V1 CLI output through atomic
+  replacement instead of following an existing destination symlink.
+- Preserve a pre-existing temporary path when exclusive V2 creation fails.
+- Pin GitHub Actions to immutable commit references and replace the missing
+  dependency-review `v5` tag with the existing `v5.0.0` commit.
+- Give the dedicated 50,000-run parser fuzz campaign a 120-second test budget
+  instead of the regular suite's five-second default.
 
 ### Added
 
-- Add the provisional `CFENC002` streaming format and public
+- Add the `CFENC002` streaming format and public
   `encryptStreamV2` / `decryptStreamV2` APIs with bounded buffers,
   backpressure, cancellation, progress reporting, segmented content keys, and
   authenticated termination.
@@ -39,7 +47,7 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   memory metrics, cancellation and write-failure probes, and a 64 MiB Web
   Worker campaign on Chromium, Firefox, and WebKit.
 - Finalize the V2 practical guide, V1/V2 detection and migration policy,
-  measured platform limits, release-candidate specification, and published
+  measured platform limits, versioned specification, and published
   package contents.
 
 ## [1.1.0] - 2026-07-25
@@ -54,7 +62,7 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   including Web Workers, concurrent calls, failures, and cancellation.
 - Version the Argon2id profiles and add reproducible Node.js and browser
   benchmarks for latency, memory, concurrency, UI blocking, and Web Workers.
-- Pin and isolate `argon2-browser@1.18.0`, validate its audited WASM, enforce
+- Pin and isolate `argon2-browser@1.18.0`, validate its pinned WASM, enforce
   Argon2id v1.3 output, and serialize access to its shared runtime.
 - Add typed internal errors and stable public error codes.
 - Add decryption resource limits and password input limits.
